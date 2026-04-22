@@ -1,0 +1,55 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Allow manual re-deploy from the Actions tab without a code push
+  workflow_dispatch:
+
+# Permissions required by the GitHub Pages deployment API
+permissions:
+  contents: read   # checkout
+  pages:    write  # upload artifact and deploy
+  id-token: write  # OIDC token for trusted deployment (no long-lived secrets needed)
+
+# Only one Pages deployment runs at a time.
+# A new push cancels any in-progress deployment for the same group.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy static site
+    runs-on: ubuntu-latest
+
+    # Surfaces the live URL in the GitHub UI and in pull-request checks
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Validates Pages is enabled and configures the base path correctly
+      # when the site is deployed under a subdirectory (project pages).
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v4
+
+      # Packages ./public as a tar artifact that GitHub's deployment
+      # infrastructure unpacks and serves — no web server required.
+      - name: Upload Pages artifact (./public)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./public
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Deployment summary
+        run: |
+          echo "### GitHub Pages deployment complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** ${{ steps.deploy.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

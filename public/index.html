@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proto — How One Ancient Language Went Global</title>
+  <meta name="description"
+        content="An interactive animated map of Proto-Indo-European language migrations from 4000 BCE to 500 CE, based on Laura Spinney's research." />
+  <!--
+    Content-Security-Policy delivered as a <meta> tag so it applies when
+    the app is hosted on GitHub Pages (which cannot set custom HTTP headers).
+    When served by Express the HTTP header from helmet takes precedence;
+    both are enforced simultaneously and are intentionally identical.
+    Note: frame-ancestors is not supported in <meta> CSP — GitHub Pages
+    sets X-Frame-Options: DENY on all *.github.io responses automatically.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' https://unpkg.com; style-src 'self' 'sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' https://unpkg.com 'unsafe-inline'; img-src 'self' data: https://*.basemaps.cartocdn.com https://*.tile.opentopomap.org https://server.arcgisonline.com; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; script-src-attr 'none'; upgrade-insecure-requests;" />
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H"
+        crossorigin="anonymous" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <div id="header" role="banner">
+    <div id="header-inner">
+      <h1>PROTO</h1>
+      <p>How One Ancient Language Went Global &nbsp;·&nbsp; Based on Laura Spinney's research into Proto-Indo-European</p>
+    </div>
+    <div id="header-note" aria-label="Map disclaimer">Modern borders shown for reference only</div>
+  </div>
+
+  <!-- Map container -->
+  <div id="map"
+       role="application"
+       aria-label="Interactive Proto-Indo-European migration map. Use the timeline controls below to animate migrations across time. Click territories for details."
+       tabindex="0"></div>
+
+  <!-- Info panel -->
+  <div id="info-panel"
+       role="complementary"
+       aria-label="Culture details"
+       aria-hidden="true"
+       class="hidden">
+    <button id="info-close" aria-label="Close culture details">✕</button>
+    <div id="info-branch-tag" aria-hidden="true"></div>
+    <h2 id="info-name"></h2>
+    <div id="info-dates" aria-label="Date range"></div>
+    <p id="info-desc"></p>
+    <div id="info-genetics" aria-label="Genetic ancestry note"></div>
+  </div>
+
+  <!-- Legend -->
+  <nav id="legend" aria-label="Language branch filter — click to show or hide each branch">
+    <div id="legend-title" aria-hidden="true">Language Branches</div>
+    <div id="legend-items" role="list"></div>
+    <div id="legend-divider" role="separator" aria-hidden="true"></div>
+    <div id="legend-migration-row" aria-hidden="true">
+      <span class="legend-arrow">─ ─ ▶</span>
+      <span>Migration path</span>
+    </div>
+  </nav>
+
+  <!-- Map Controls -->
+  <div id="map-controls" role="region" aria-label="Map display settings">
+    <div id="map-controls-title" aria-hidden="true">Map Display</div>
+
+    <div class="map-ctrl-row">
+      <label class="map-ctrl-label" for="map-style-select">Map style</label>
+      <select id="map-style-select" aria-label="Map tile style">
+        <option value="positron">Light (Positron)</option>
+        <option value="dark">Dark Matter</option>
+        <option value="voyager">Voyager</option>
+        <option value="topo">OpenTopoMap</option>
+        <option value="esri-relief">ESRI Relief</option>
+      </select>
+    </div>
+
+    <div class="map-ctrl-row">
+      <label class="map-ctrl-label" for="map-opacity-slider">Map opacity</label>
+      <input type="range" class="ctrl-slider" id="map-opacity-slider"
+             min="0" max="100" value="90" step="5"
+             aria-label="Map tile opacity"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="90" />
+      <span class="map-ctrl-value" id="map-opacity-val" aria-live="polite" aria-atomic="true">90%</span>
+    </div>
+
+    <div class="map-ctrl-row">
+      <label class="map-ctrl-label" for="overlay-opacity-slider">Overlay opacity</label>
+      <input type="range" class="ctrl-slider" id="overlay-opacity-slider"
+             min="10" max="100" value="80" step="5"
+             aria-label="Territory and migration overlay opacity"
+             aria-valuemin="10" aria-valuemax="100" aria-valuenow="80" />
+      <span class="map-ctrl-value" id="overlay-opacity-val" aria-live="polite" aria-atomic="true">80%</span>
+    </div>
+  </div>
+
+  <!-- Timeline controls -->
+  <div id="timeline-panel" role="region" aria-label="Timeline controls">
+
+    <div id="timeline-year-display" aria-hidden="true">
+      <span id="year-label">4000 BCE</span>
+    </div>
+
+    <div id="timeline-controls">
+      <button id="btn-rewind" aria-label="Rewind to 4000 BCE">⏮</button>
+      <button id="btn-play"   aria-label="Play animation" aria-pressed="false">▶</button>
+      <button id="btn-slower" aria-label="Decrease playback speed">−</button>
+      <span id="speed-label" aria-live="polite" aria-atomic="true" aria-label="Playback speed">1×</span>
+      <button id="btn-faster" aria-label="Increase playback speed">+</button>
+    </div>
+
+    <div id="timeline-slider-wrap">
+      <span class="tl-edge" aria-hidden="true">4000 BCE</span>
+      <input type="range" id="time-slider"
+             min="-4000" max="500" value="-4000" step="10"
+             aria-label="Timeline year"
+             aria-valuemin="-4000" aria-valuemax="500"
+             aria-valuenow="-4000" aria-valuetext="4000 BCE" />
+      <span class="tl-edge" aria-hidden="true">500 CE</span>
+    </div>
+
+    <!-- aria-live so screen readers announce events as the timeline plays -->
+    <div id="event-ticker"
+         role="status"
+         aria-live="polite"
+         aria-atomic="true"
+         aria-label="Historical event"></div>
+
+    <div id="legal-footer">
+      <a href="privacy.html">Privacy Policy</a>
+      <span aria-hidden="true">·</span>
+      <a href="terms.html">Terms of Use</a>
+    </div>
+
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH"
+          crossorigin="anonymous"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

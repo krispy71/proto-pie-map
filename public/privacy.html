@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Proto Migration Map</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0d0d1a;
+      --surface:  rgba(10, 8, 22, 0.92);
+      --gold:     #f0c060;
+      --text:     #c8bfaa;
+      --muted:    #a07868;
+      --border:   rgba(240,192,96,0.2);
+    }
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Georgia, serif;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+    a { color: #b89070; }
+    a:hover { color: var(--gold); }
+    :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+    header {
+      background: rgba(10,8,22,0.96);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    header a {
+      font-family: sans-serif;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-decoration: none;
+    }
+    header a:hover { color: var(--gold); }
+    header h1 {
+      font-size: 1.2rem;
+      letter-spacing: 0.2em;
+      color: var(--gold);
+      font-weight: normal;
+      flex: 1;
+      text-align: center;
+    }
+
+    main {
+      max-width: 720px;
+      margin: 48px auto;
+      padding: 0 24px 80px;
+    }
+
+    h2 {
+      font-size: 1.4rem;
+      color: var(--gold);
+      font-weight: normal;
+      margin-bottom: 8px;
+    }
+    h3 {
+      font-size: 1rem;
+      color: #e8dfc8;
+      font-weight: bold;
+      margin: 28px 0 8px;
+      font-family: sans-serif;
+      letter-spacing: 0.06em;
+    }
+    .last-updated {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-family: sans-serif;
+      margin-bottom: 32px;
+    }
+    p { margin-bottom: 16px; }
+    ul {
+      margin: 8px 0 16px 24px;
+    }
+    ul li { margin-bottom: 6px; }
+    .note {
+      background: rgba(240,192,96,0.06);
+      border-left: 3px solid rgba(240,192,96,0.35);
+      padding: 12px 16px;
+      margin: 20px 0;
+      font-size: 0.88rem;
+      color: #c8bfaa;
+    }
+    .section {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      margin-top: 24px;
+    }
+    address {
+      font-style: normal;
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/" aria-label="Back to map">← Back to map</a>
+  <h1>PROTO</h1>
+  <span style="width:80px"></span><!-- balance the back link -->
+</header>
+
+<main>
+  <h2>Privacy Policy</h2>
+  <p class="last-updated">Last updated: April 2026</p>
+
+  <div class="note">
+    <strong>Summary:</strong> This app uses no cookies, no advertising trackers, and
+    no user accounts. Your IP address appears briefly in server access logs for security
+    purposes and is automatically deleted after 30 days. We anonymise the last part of
+    your IP address before it is stored.
+  </div>
+
+  <div class="section">
+    <h3>1. Who we are</h3>
+    <p>
+      The Proto Migration Map is an educational, non-commercial interactive visualization
+      of Proto-Indo-European language migrations. If you have questions about this policy,
+      contact us at:
+    </p>
+    <address>
+      [Contact email address — update before publishing]
+    </address>
+  </div>
+
+  <div class="section">
+    <h3>2. What data we collect and why</h3>
+
+    <h3 style="margin-top:16px">2a. Server access logs</h3>
+    <p>
+      When you visit this site, our server automatically records a standard access log
+      entry. This is a routine security measure that allows us to detect abuse, diagnose
+      errors, and monitor application health.
+    </p>
+    <p>Each log entry contains:</p>
+    <ul>
+      <li>Your <strong>anonymised IP address</strong> — the last octet of IPv4 addresses
+          and the last 64 bits of IPv6 addresses are replaced with zeros before the entry
+          is written. For example, <code>192.168.1.42</code> becomes
+          <code>192.168.1.0</code>.</li>
+      <li>The date and time of your request</li>
+      <li>The page or resource you requested</li>
+      <li>Your browser's <em>User-Agent</em> string (browser type and version)</li>
+      <li>The HTTP status code returned (e.g. 200, 404)</li>
+    </ul>
+    <p>
+      We do <strong>not</strong> log full, unanonymised IP addresses. We do
+      <strong>not</strong> link log entries to individual users or build behavioural
+      profiles.
+    </p>
+    <p>
+      <strong>Legal basis (GDPR Art. 6(1)(f)):</strong> Legitimate interest — security
+      monitoring and abuse prevention are necessary for operating a publicly accessible
+      web service.
+    </p>
+    <p>
+      <strong>Retention:</strong> Logs are stored in AWS CloudWatch with a 30-day
+      retention policy and are automatically deleted thereafter.
+    </p>
+
+    <h3>2b. Third-party map tile providers</h3>
+    <p>
+      The map is displayed using tile images loaded from third-party content delivery
+      networks. When your browser loads a tile image, it sends a connection request
+      (including your IP address and browser headers) to the tile provider's servers.
+      We do not control what data these providers collect.
+    </p>
+    <p>The providers used, and their privacy policies:</p>
+    <ul>
+      <li>
+        <strong>CARTO (CartoDB)</strong> — Light, Dark, and Voyager tile styles.<br />
+        Privacy policy: <a href="https://carto.com/privacy/" rel="noopener noreferrer" target="_blank">carto.com/privacy</a>
+      </li>
+      <li>
+        <strong>OpenTopoMap</strong> — Topographic tile style. Operated by volunteers;
+        data from OpenStreetMap.<br />
+        See <a href="https://opentopomap.org/about" rel="noopener noreferrer" target="_blank">opentopomap.org/about</a>
+      </li>
+      <li>
+        <strong>Esri / ArcGIS Online</strong> — ESRI Relief tile style.<br />
+        Privacy policy: <a href="https://www.esri.com/en-us/privacy/privacy-statements/privacy-statement" rel="noopener noreferrer" target="_blank">esri.com/privacy</a>
+      </li>
+    </ul>
+    <p>
+      Tile providers are contacted only when you interact with the map (pan, zoom, or
+      change the map style). The Light (Positron) tile style loads by default; others
+      are loaded only if you select them.
+    </p>
+
+    <h3>2c. Leaflet.js library (unpkg.com CDN)</h3>
+    <p>
+      The interactive map engine (Leaflet.js version 1.9.4) is loaded from
+      <a href="https://unpkg.com" rel="noopener noreferrer" target="_blank">unpkg.com</a>,
+      a public CDN for npm packages. Your browser will make a connection to unpkg.com
+      when loading the page. The file is verified using a cryptographic integrity hash
+      (Subresource Integrity) to ensure it has not been tampered with.
+    </p>
+  </div>
+
+  <div class="section">
+    <h3>3. Cookies and tracking</h3>
+    <p>
+      This site sets <strong>no cookies</strong> of any kind. There are no analytics
+      scripts, advertising networks, social media buttons, or tracking pixels. Your
+      browser may cache static files (images, scripts, stylesheets) for up to 24 hours
+      as a standard performance optimisation; this cache is stored locally on your
+      device and is not accessible to us.
+    </p>
+  </div>
+
+  <div class="section">
+    <h3>4. Your rights under GDPR</h3>
+    <p>
+      If you are in the European Economic Area (EEA) or United Kingdom, you have rights
+      under the General Data Protection Regulation (GDPR) and equivalent UK law,
+      including:
+    </p>
+    <ul>
+      <li><strong>Right to access</strong> — you may request a copy of any personal
+          data we hold about you.</li>
+      <li><strong>Right to erasure</strong> — you may request deletion of your data.
+          Because we anonymise IPs before logging, we cannot identify which log entries,
+          if any, relate to you.</li>
+      <li><strong>Right to object</strong> — you may object to processing based on
+          legitimate interest.</li>
+    </ul>
+    <p>
+      To exercise these rights, contact us at the address in section 1.
+      You also have the right to lodge a complaint with your national data protection
+      authority (for EU residents: <a href="https://edpb.europa.eu/about-edpb/about-edpb/members_en" rel="noopener noreferrer" target="_blank">your member state's supervisory authority</a>;
+      for UK residents: the <a href="https://ico.org.uk" rel="noopener noreferrer" target="_blank">ICO</a>).
+    </p>
+  </div>
+
+  <div class="section">
+    <h3>5. Changes to this policy</h3>
+    <p>
+      If we make material changes to this policy, we will update the date at the top
+      of this page. Continued use of the site after changes constitutes acceptance of
+      the revised policy.
+    </p>
+  </div>
+
+</main>
+
+</body>
+</html>

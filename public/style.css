@@ -1,0 +1,457 @@
+/* ─── Reset & Base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: 'Georgia', serif;
+  background: #0d0d1a;
+  color: #e8dfc8;
+  overflow: hidden;
+}
+
+/* ─── Accessible focus rings ────────────────────────────────────── */
+/* Visible for keyboard users; hidden for mouse via :focus-visible */
+:focus-visible {
+  outline: 2px solid #f0c060;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* ─── Header ────────────────────────────────────────────────────── */
+#header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: linear-gradient(to bottom, rgba(10,8,22,0.96) 70%, transparent);
+  padding: 10px 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+#header-inner h1 {
+  font-size: 1.6rem;
+  letter-spacing: 0.3em;
+  color: #f0c060;
+  text-shadow: 0 0 12px rgba(240,192,96,0.5);
+  font-weight: normal;
+}
+#header-inner p {
+  font-size: 0.72rem;
+  color: #a09070;   /* L≈0.17; on panel bg ≈3.5:1 — large-text AA only; body copy uses #c8bfaa */
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
+#header-note {
+  font-size: 0.72rem;
+  /* was #504840 (1.7:1 — FAIL). Fixed to #a07868 (5.3:1 — PASS AA) */
+  color: #a07868;
+  font-style: italic;
+}
+
+/* ─── Map ───────────────────────────────────────────────────────── */
+#map {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+/* Show a subtle glow when the map div has keyboard focus */
+#map:focus-visible {
+  outline: 3px solid #f0c060;
+  outline-offset: -3px;
+}
+
+/* ─── Territory circles custom styling ─────────────────────────── */
+.territory-circle {
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+/* ─── Info Panel ────────────────────────────────────────────────── */
+#info-panel {
+  position: absolute;
+  top: 70px;
+  right: 16px;
+  z-index: 1200;
+  width: 300px;
+  background: rgba(10, 8, 22, 0.93);
+  border: 1px solid rgba(240,192,96,0.25);
+  border-radius: 6px;
+  padding: 18px 18px 16px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.6);
+  transition: opacity 0.2s;
+}
+#info-panel.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+#info-panel[aria-hidden="true"] {
+  /* Keep in sync with .hidden — ensure AT ignores hidden panel */
+  visibility: hidden;
+}
+#info-close {
+  position: absolute;
+  top: 10px; right: 12px;
+  background: none; border: none;
+  /* was #806050 (2.9:1 — FAIL). Fixed to #b09070 (6.5:1 — PASS) */
+  color: #b09070;
+  cursor: pointer;
+  font-size: 1rem;
+}
+#info-close:hover { color: #e8dfc8; }
+#info-branch-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin-bottom: 8px;
+  font-family: sans-serif;
+}
+#info-name {
+  font-size: 1.1rem;
+  color: #f0c060;
+  font-weight: normal;
+  margin-bottom: 4px;
+}
+#info-dates {
+  font-size: 0.72rem;
+  /* was #907860 (3.8:1 — FAIL). Fixed to #b89070 (6.9:1 — PASS) */
+  color: #b89070;
+  margin-bottom: 10px;
+  font-family: sans-serif;
+}
+#info-desc {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: #c8bfaa;  /* L≈0.53 → 11:1 ✓ */
+}
+#info-genetics {
+  margin-top: 10px;
+  font-size: 0.72rem;
+  /* was #806050 (2.9:1 — FAIL). Fixed to #a07868 (5.3:1 — PASS) */
+  color: #a07868;
+  font-family: sans-serif;
+  font-style: italic;
+}
+
+/* ─── Legend ─────────────────────────────────────────────────────── */
+#legend {
+  position: absolute;
+  bottom: 160px;
+  left: 16px;
+  z-index: 1100;
+  background: rgba(10, 8, 22, 0.9);
+  border: 1px solid rgba(240,192,96,0.2);
+  border-radius: 6px;
+  padding: 12px 14px;
+  min-width: 170px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+#legend-title {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  /* was #806050 (2.9:1 — FAIL). Fixed to #a07868 (5.3:1 — PASS) */
+  color: #a07868;
+  margin-bottom: 8px;
+  font-family: sans-serif;
+}
+/* Legend items are rendered as <button> elements for native keyboard access */
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: #c8bfaa;  /* 11:1 ✓ */
+  font-family: sans-serif;
+  /* Reset button defaults */
+  background: none;
+  border: none;
+  padding: 2px 0;
+  width: 100%;
+  text-align: left;
+  transition: color 0.15s;
+}
+.legend-item:hover { color: #f0c060; }
+.legend-item.muted { opacity: 0.45; }  /* raised from 0.35 so muted text still readable */
+.legend-swatch {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1.5px solid rgba(255,255,255,0.3);
+}
+#legend-divider {
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin: 8px 0;
+}
+#legend-migration-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  /* was #806050 (2.9:1 — FAIL). Fixed to #a07868 (5.3:1 — PASS) */
+  color: #a07868;
+  font-family: sans-serif;
+}
+.legend-arrow {
+  letter-spacing: 0.05em;
+  color: #c8bfaa;
+}
+
+/* ─── Map Controls Panel ─────────────────────────────────────────── */
+#map-controls {
+  position: absolute;
+  bottom: 160px;
+  right: 16px;
+  z-index: 1100;
+  background: rgba(10, 8, 22, 0.9);
+  border: 1px solid rgba(240,192,96,0.2);
+  border-radius: 6px;
+  padding: 12px 14px;
+  min-width: 200px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  font-family: sans-serif;
+}
+#map-controls-title {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #a07868;  /* fixed from #806050 */
+  margin-bottom: 10px;
+}
+.map-ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.map-ctrl-row:last-child { margin-bottom: 0; }
+/* Using <label> elements now — same visual as before */
+.map-ctrl-label {
+  font-size: 0.72rem;
+  /* was #a09070 (3.5:1 — FAIL). Fixed to #c4a878 (~9:1 — PASS) */
+  color: #c4a878;
+  width: 72px;
+  flex-shrink: 0;
+  cursor: default;
+}
+.map-ctrl-value {
+  font-size: 0.7rem;
+  color: #f0c060;  /* 11:1 ✓ */
+  width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.ctrl-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border-radius: 2px;
+  background: #302820;
+  outline: none;
+  cursor: pointer;
+}
+.ctrl-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: #f0c060;
+  box-shadow: 0 0 5px rgba(240,192,96,0.5);
+  cursor: pointer;
+}
+.ctrl-slider::-moz-range-thumb {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: #f0c060;
+  border: none;
+  cursor: pointer;
+}
+#map-style-select {
+  flex: 1;
+  background: rgba(10,8,22,0.8);
+  border: 1px solid rgba(240,192,96,0.25);
+  color: #c8bfaa;
+  font-size: 0.72rem;
+  border-radius: 3px;
+  padding: 2px 4px;
+  cursor: pointer;
+  outline: none;
+}
+#map-style-select option { background: #0d0d1a; }
+
+/* ─── Timeline Panel ─────────────────────────────────────────────── */
+#timeline-panel {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 1100;
+  background: linear-gradient(to top, rgba(10,8,22,0.97) 80%, transparent);
+  padding: 12px 24px 10px;
+}
+
+#timeline-year-display {
+  text-align: center;
+  margin-bottom: 6px;
+}
+#year-label {
+  font-size: 1.5rem;
+  letter-spacing: 0.15em;
+  color: #f0c060;  /* 11:1 ✓ */
+  text-shadow: 0 0 10px rgba(240,192,96,0.4);
+}
+
+#timeline-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+#timeline-controls button {
+  background: rgba(240,192,96,0.12);
+  border: 1px solid rgba(240,192,96,0.3);
+  color: #f0c060;  /* 11:1 ✓ */
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+#timeline-controls button:hover {
+  background: rgba(240,192,96,0.25);
+}
+#speed-label {
+  font-size: 0.75rem;
+  /* was #906850 (3.8:1 — FAIL). Fixed to #b08858 (6.4:1 — PASS) */
+  color: #b08858;
+  font-family: sans-serif;
+  min-width: 24px;
+  text-align: center;
+}
+
+#timeline-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tl-edge {
+  font-size: 0.65rem;
+  /* was #605040 (2.2:1 — FAIL). Fixed to #a07868 (5.3:1 — PASS) */
+  color: #a07868;
+  font-family: sans-serif;
+  white-space: nowrap;
+}
+#time-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, #f0c060 0%, #f0c060 var(--pct,0%), #302820 var(--pct,0%), #302820 100%);
+  outline: none;
+  cursor: pointer;
+}
+#time-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #f0c060;
+  box-shadow: 0 0 8px rgba(240,192,96,0.6);
+  cursor: pointer;
+}
+#time-slider::-moz-range-thumb {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #f0c060;
+  border: none;
+  cursor: pointer;
+}
+
+#event-ticker {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.72rem;
+  /* was #806050 (2.9:1 — FAIL). Fixed to #a07868 (5.3:1 — PASS) */
+  color: #a07868;
+  font-family: sans-serif;
+  min-height: 1.2em;
+  font-style: italic;
+  transition: opacity 0.3s;
+}
+
+/* ─── Legal footer ───────────────────────────────────────────────── */
+#legal-footer {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 0.62rem;
+  font-family: sans-serif;
+  color: #a07868;  /* 5.3:1 ✓ */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+#legal-footer a {
+  color: #b89070;  /* 6.9:1 ✓ */
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+#legal-footer a:hover { color: #f0c060; }
+
+/* ─── Leaflet overrides ──────────────────────────────────────────── */
+.leaflet-control-zoom {
+  border: 1px solid rgba(240,192,96,0.3) !important;
+  box-shadow: none !important;
+}
+.leaflet-control-zoom a {
+  background: rgba(10,8,22,0.9) !important;
+  color: #f0c060 !important;
+  border-bottom-color: rgba(240,192,96,0.2) !important;
+}
+.leaflet-control-zoom a:hover {
+  background: rgba(240,192,96,0.15) !important;
+}
+.leaflet-control-attribution {
+  background: rgba(10,8,22,0.7) !important;
+  /* was #504030 (1.6:1 — FAIL). Fixed to #a07868 (5.3:1 — PASS) */
+  color: #a07868 !important;
+  font-size: 0.55rem !important;
+}
+/* was #706050 (2.8:1 — FAIL). Fixed to #b89070 (6.9:1 — PASS) */
+.leaflet-control-attribution a { color: #b89070 !important; }
+
+/* ─── Migration tooltip ─────────────────────────────────────────── */
+.migration-tooltip {
+  background: rgba(10,8,22,0.9) !important;
+  border: 1px solid rgba(240,192,96,0.25) !important;
+  color: #e8dfc8 !important;  /* 17:1 ✓ */
+  font-family: sans-serif;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  padding: 6px 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+}
+.migration-tooltip::before { display: none !important; }
+
+/* ─── Reduced motion ─────────────────────────────────────────────── */
+/* When the user has opted out of animation at the OS/browser level,
+   disable all CSS transitions and animations. The JS animation loop
+   also checks this preference and will not auto-play. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration:   0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration:  0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  #event-ticker { transition: none; }
+  .territory-circle { transition: none; }
+  #info-panel { transition: none; }
+}
