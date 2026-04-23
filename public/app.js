@@ -21,6 +21,10 @@ class PIEMigrationMap {
     this.territoryGroup   = null;
     this.migrationGroup   = null;
     this.labelGroup       = null;
+    this.siteGroup        = null;
+
+    // Site visibility toggle
+    this.sitesVisible     = true;
 
     // Display state
     this.mapOpacity     = 0.90;  // tile layer opacity (0–1)
@@ -81,15 +85,20 @@ class PIEMigrationMap {
         if (e.matches) this.pause();
       });
 
+    // Debounced URL state push (500 ms)
+    this._pushUrlStateDebounced = this._debounce(() => this._pushUrlState(), 500);
+
     this.init();
   }
 
   // ── Initialization ───────────────────────────────────────────────
 
   init() {
+    this._parseUrlState();       // must be before initMap/buildLegend
     this.initMap();
     this.buildLegend();
     this.initControls();
+    this.initSites();
     this.prerenderMigrationLayers();
     this.renderYear(this.currentYear);
   }
@@ -103,11 +112,15 @@ class PIEMigrationMap {
       zoomControl: true,
     });
 
-    this.tileLayer = this.makeTileLayer('positron');
+    this.tileLayer = this.makeTileLayer(
+      Object.prototype.hasOwnProperty.call(this.TILE_STYLES, this._initStyle || '')
+        ? this._initStyle : 'positron'
+    );
     this.tileLayer.setOpacity(this.mapOpacity);
     this.tileLayer.addTo(this.map);
 
     // Layer groups (order matters for z-stacking)
+    this.siteGroup      = L.layerGroup().addTo(this.map);
     this.migrationGroup = L.layerGroup().addTo(this.map);
     this.territoryGroup = L.layerGroup().addTo(this.map);
     this.labelGroup     = L.layerGroup().addTo(this.map);
@@ -157,6 +170,110 @@ class PIEMigrationMap {
     });
   }
 
+  // ── URL State ────────────────────────────────────────────────────
+
+  _debounce(fn, delay) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
+
+  _parseUrlState() {
+    const hash = location.hash.slice(1);
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+
+    const year = parseInt(params.get('year'), 10);
+    if (!isNaN(year) && year >= this.data.startYear && year <= this.data.endYear) {
+      this.currentYear = year;
+    }
+
+    const style = params.get('style');
+    if (style && Object.prototype.hasOwnProperty.call(this.TILE_STYLES, style)) {
+      this._initStyle = style;
+    }
+
+    const hidden = params.get('hidden');
+    if (hidden) {
+      hidden.split(',').forEach(key => {
+        if (key && Object.prototype.hasOwnProperty.call(this.branchVisible, key)) {
+          this.branchVisible[key] = false;
+        }
+      });
+    }
+
+    if (params.get('sites') === '0') {
+      this.sitesVisible = false;
+    }
+  }
+
+  _pushUrlState() {
+    const hidden = Object.entries(this.branchVisible)
+      .filter(([, v]) => !v)
+      .map(([k]) => k)
+      .join(',');
+    const params = new URLSearchParams();
+    params.set('year', Math.round(this.currentYear));
+    if (hidden) params.set('hidden', hidden);
+    if (!this.sitesVisible) params.set('sites', '0');
+    history.replaceState(null, '', '#' + params.toString());
+  }
+
+  // ── Archaeological Sites ─────────────────────────────────────────
+
+  initSites() {
+    if (!this.data.sites) return;
+
+    this.data.sites.forEach(site => {
+      const icon = L.divIcon({
+        className: '',
+        html: '<div class="site-marker-icon"></div>',
+        iconSize:   [10, 10],
+        iconAnchor: [5, 5],
+      });
+
+      const marker = L.marker([site.lat, site.lon], { icon, zIndexOffset: 200 });
+      marker.bindTooltip(
+        `<strong>${site.name}</strong><br/><em>${site.date}</em><br/>${site.desc}`,
+        { className: 'migration-tooltip', sticky: true, maxWidth: 260 }
+      );
+      this.siteGroup.addLayer(marker);
+    });
+
+    if (!this.sitesVisible) this.siteGroup.remove();
+
+    const btn = document.getElementById('sites-toggle');
+    if (!btn) return;
+
+    // Sync button state to URL-parsed visibility
+    if (!this.sitesVisible) {
+      btn.textContent = 'Hidden';
+      btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-label', 'Archaeological sites — click to show');
+      btn.classList.add('muted');
+    }
+
+    btn.addEventListener('click', () => {
+      this.sitesVisible = !this.sitesVisible;
+      if (this.sitesVisible) {
+        this.siteGroup.addTo(this.map);
+        btn.textContent = 'Visible';
+        btn.setAttribute('aria-pressed', 'true');
+        btn.setAttribute('aria-label', 'Archaeological sites — click to hide');
+        btn.classList.remove('muted');
+      } else {
+        this.siteGroup.remove();
+        btn.textContent = 'Hidden';
+        btn.setAttribute('aria-pressed', 'false');
+        btn.setAttribute('aria-label', 'Archaeological sites — click to show');
+        btn.classList.add('muted');
+      }
+      this._pushUrlState();
+    });
+  }
+
   // ── Legend ───────────────────────────────────────────────────────
 
   buildLegend() {
@@ -197,6 +314,7 @@ class PIEMigrationMap {
     item.setAttribute('aria-label',
       `${branchName} — click to ${visible ? 'hide' : 'show'}`);
     this.renderYear(this.currentYear);
+    this._pushUrlState();
   }
 
   // ── Timeline Controls ────────────────────────────────────────────
@@ -322,6 +440,7 @@ class PIEMigrationMap {
     this.updateSlider(year);
     this.renderYear(year);
     this.updateEventTicker(year);
+    this._pushUrlStateDebounced();
   }
 
   updateYearDisplay(year) {
@@ -690,6 +809,19 @@ document.head.appendChild(labelStyle);
 // ── Bootstrap ─────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+  // ── Disclaimer overlay ───────────────────────────────────────────
+  const overlay = document.getElementById('disclaimer-overlay');
+  if (overlay) {
+    if (sessionStorage.getItem('disclaimer-dismissed')) {
+      overlay.classList.add('hidden');
+    }
+    document.getElementById('disclaimer-dismiss').addEventListener('click', () => {
+      overlay.classList.add('hidden');
+      sessionStorage.setItem('disclaimer-dismissed', '1');
+    });
+  }
+
+  // ── Map ──────────────────────────────────────────────────────────
   const app = new PIEMigrationMap(PIE_DATA);
 
   // Close info panel

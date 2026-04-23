@@ -3,9 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Proto — How One Ancient Language Went Global</title>
+  <title>Yamnaya — An Interactive Map of Indo-European Language Origins</title>
   <meta name="description"
-        content="An interactive animated map of Proto-Indo-European language migrations from 4000 BCE to 500 CE, based on Laura Spinney's research." />
+        content="An interactive animated map of Proto-Indo-European language migrations from 4000 BCE to 500 CE, tracing how the Yamnaya steppe people spread their language across Eurasia." />
+  <!-- Open Graph / social preview -->
+  <meta property="og:title"       content="Yamnaya — An Interactive Map of Indo-European Language Origins" />
+  <meta property="og:description" content="Animate 5,500 years of language migration from the Pontic steppe. Explore how one ancient people's tongue became half the world's mother tongue." />
+  <meta property="og:type"        content="website" />
+  <meta name="twitter:card"       content="summary_large_image" />
   <!--
     Content-Security-Policy delivered as a <meta> tag so it applies when
     the app is hosted on GitHub Pages (which cannot set custom HTTP headers).
@@ -13,12 +18,10 @@
     both are enforced simultaneously and are intentionally identical.
     Note: frame-ancestors is not supported in <meta> CSP — GitHub Pages
     sets X-Frame-Options: DENY on all *.github.io responses automatically.
+    Leaflet is now served locally from /lib/ so unpkg.com is not required.
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' https://unpkg.com; style-src 'self' 'sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' https://unpkg.com 'unsafe-inline'; img-src 'self' data: https://*.basemaps.cartocdn.com https://*.tile.opentopomap.org https://server.arcgisonline.com; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; script-src-attr 'none'; upgrade-insecure-requests;" />
-  <link rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H"
-        crossorigin="anonymous" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.basemaps.cartocdn.com https://*.tile.opentopomap.org https://server.arcgisonline.com; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; script-src-attr 'none'; upgrade-insecure-requests;" />
+  <link rel="stylesheet" href="lib/leaflet.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -26,8 +29,8 @@
   <!-- Header -->
   <div id="header" role="banner">
     <div id="header-inner">
-      <h1>PROTO</h1>
-      <p>How One Ancient Language Went Global &nbsp;·&nbsp; Based on Laura Spinney's research into Proto-Indo-European</p>
+      <h1>YAMNAYA</h1>
+      <p>An Interactive Map of Indo-European Language Origins &nbsp;·&nbsp; From the Pontic steppe to the ends of the earth</p>
     </div>
     <div id="header-note" aria-label="Map disclaimer">Modern borders shown for reference only</div>
   </div>
@@ -95,6 +98,11 @@
              aria-valuemin="10" aria-valuemax="100" aria-valuenow="80" />
       <span class="map-ctrl-value" id="overlay-opacity-val" aria-live="polite" aria-atomic="true">80%</span>
     </div>
+
+    <div class="map-ctrl-row">
+      <label class="map-ctrl-label" for="sites-toggle">Arch. sites</label>
+      <button id="sites-toggle" class="sites-toggle-btn" aria-pressed="true" aria-label="Archaeological sites — click to hide">Visible</button>
+    </div>
   </div>
 
   <!-- Timeline controls -->
@@ -137,9 +145,29 @@
 
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH"
-          crossorigin="anonymous"></script>
+  <!-- Disclaimer overlay — shown once per session, dismissed to sessionStorage -->
+  <div id="disclaimer-overlay" role="dialog" aria-modal="true" aria-labelledby="disclaimer-title">
+    <div id="disclaimer-box">
+      <h2 id="disclaimer-title">Before you explore</h2>
+      <p>
+        Territorial extents shown on this map are <strong>schematic approximations</strong>,
+        not historically precise boundaries. Dates are approximate and subject to ongoing
+        scholarly revision. Migration arrows indicate general direction, not specific routes.
+      </p>
+      <p>
+        Modern political borders are shown for geographic orientation only and have no
+        relationship to ancient territorial divisions.
+      </p>
+      <p class="disclaimer-source">
+        Data reflects the scholarly consensus of archaeogenetics and comparative linguistics
+        as of 2024–2025. See <a href="terms.html">Terms of Use</a> for full accuracy disclaimer
+        and source attributions.
+      </p>
+      <button id="disclaimer-dismiss" autofocus>I understand — show the map</button>
+    </div>
+  </div>
+
+  <script src="lib/leaflet.js"></script>
   <script src="data.js"></script>
   <script src="app.js"></script>
 </body>

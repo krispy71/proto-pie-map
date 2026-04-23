@@ -438,6 +438,92 @@ html, body {
 }
 .migration-tooltip::before { display: none !important; }
 
+/* ─── Disclaimer overlay ─────────────────────────────────────────── */
+#disclaimer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+#disclaimer-overlay.hidden {
+  display: none;
+}
+#disclaimer-box {
+  background: rgba(10, 8, 22, 0.98);
+  border: 1px solid rgba(240, 192, 96, 0.3);
+  border-radius: 8px;
+  padding: 28px 32px;
+  max-width: 480px;
+  margin: 24px;
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.8);
+  font-family: Georgia, serif;
+}
+#disclaimer-title {
+  font-size: 1.1rem;
+  color: #f0c060;
+  font-weight: normal;
+  margin-bottom: 14px;
+  letter-spacing: 0.08em;
+}
+#disclaimer-box p {
+  font-size: 0.82rem;
+  color: #c8bfaa;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+.disclaimer-source {
+  font-size: 0.72rem !important;
+  color: #a07868 !important;
+  font-family: sans-serif;
+}
+.disclaimer-source a { color: #b89070; }
+#disclaimer-dismiss {
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+  padding: 10px 16px;
+  background: rgba(240, 192, 96, 0.12);
+  border: 1px solid rgba(240, 192, 96, 0.4);
+  color: #f0c060;
+  border-radius: 5px;
+  font-family: sans-serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  letter-spacing: 0.03em;
+}
+#disclaimer-dismiss:hover { background: rgba(240, 192, 96, 0.22); }
+
+/* ─── Archaeological site markers ───────────────────────────────── */
+.site-marker-icon {
+  width: 10px;
+  height: 10px;
+  background: #e8dfc8;
+  border: 1.5px solid rgba(240, 192, 96, 0.7);
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(240, 192, 96, 0.4);
+}
+
+/* ─── Sites toggle button ────────────────────────────────────────── */
+.sites-toggle-btn {
+  flex: 1;
+  background: rgba(10, 8, 22, 0.8);
+  border: 1px solid rgba(240, 192, 96, 0.25);
+  color: #c8bfaa;
+  font-size: 0.72rem;
+  border-radius: 3px;
+  padding: 2px 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
+}
+.sites-toggle-btn:hover { background: rgba(240, 192, 96, 0.1); }
+.sites-toggle-btn.muted { opacity: 0.5; }
+
 /* ─── Reduced motion ─────────────────────────────────────────────── */
 /* When the user has opted out of animation at the OS/browser level,
    disable all CSS transitions and animations. The JS animation loop
