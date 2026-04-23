@@ -1,8 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════
-//  Proto-Indo-European Migration Data
-//  Based on: Laura Spinney, "Proto: How One Ancient Language Went Global"
-//  Drawing on archaeogenetics (Reich, Haak, Mathieson et al.) and
-//  comparative linguistics (Anthony, Mallory, Fortson, Ringe).
+//  Yamnaya Migration Map — Historical Data
+//  Sources: Haak et al. 2015 (Nature 522), Mathieson et al. 2015 (Nature 528),
+//  Olalde et al. 2018 (Science 360), Narasimhan et al. 2019 (Science 365),
+//  Damgaard et al. 2018 (Nature 557), Librado et al. 2021 (Nature 598),
+//  Lazaridis et al. 2022 (Science 375), Reich 2018, Anthony 2007,
+//  Mallory & Adams 2006, Spinney 2024.
 //
 //  Coordinate system: [latitude, longitude]
 //  Radii in kilometres — converted to metres in app.js (* 1000)
@@ -17,6 +19,7 @@ const PIE_DATA = {
   // ── Language branches ────────────────────────────────────────────
   // Each entry: { name, color (fill), textColor }
   branches: {
+    ancestral:     { name: 'Pre-PIE Ancestral', color: '#9B8E7A', textColor: '#fff' },
     homeland:      { name: 'PIE Homeland',   color: '#E8A020', textColor: '#000' },
     anatolian:     { name: 'Anatolian',      color: '#A0522D', textColor: '#fff' },
     tocharian:     { name: 'Tocharian',      color: '#9B59B6', textColor: '#fff' },
@@ -32,6 +35,8 @@ const PIE_DATA = {
 
   // ── Genetic ancestry notes (displayed in info panel) ─────────────
   genetics: {
+    ancestral:
+      'Pre-PIE ancestral populations formed the genetic substrate of Europe and western Asia before the steppe expansion. Western Hunter-Gatherers (WHG) were the indigenous Europeans; Anatolian Neolithic Farmers (ANF) spread agriculture from the Near East; Eastern Hunter-Gatherers (EHG) and Caucasus Hunter-Gatherers (CHG) mixed on the Pontic steppe to produce the Yamnaya genetic signature. All these lineages survive as minority components in modern populations.',
     homeland:
       'Ancient DNA: Yamnaya ancestry is a ~50/50 mix of Eastern Hunter-Gatherer (EHG) and Caucasus Hunter-Gatherer (CHG). This profile spread dramatically across Eurasia after 3000 BCE, replacing up to 75% of local ancestry in parts of Europe.',
     anatolian:
@@ -53,16 +58,75 @@ const PIE_DATA = {
     armenian:
       'Armenians show a mix of Caucasus Hunter-Gatherer (CHG), Anatolian Neolithic, and some steppe ancestry — reflecting their position at the crossroads of multiple migrations.',
     albanian:
-      'Albanian genetic profile is complex — Balkan Iron Age ancestry with some steppe admixture. Albanian is often considered one of the most isolated surviving IE branches.',
+      'Albanians show a Balkan Bronze/Iron Age genetic profile related to ancient Illyrian and Paleo-Balkan populations, with steppe admixture from Corded Ware/Bell Beaker expansions and later layers from Roman, Slavic, and medieval contacts. Ancient DNA from the Balkans is an active research area; Albanian\'s isolation makes it a crucial data point for reconstructing Paleo-Balkan IE.',
   },
 
   // ── Cultures / peoples ──────────────────────────────────────────
   // Each culture: {
   //   id, name, branch, description, startYear, endYear,
-  //   phases: [{ year, center: [lat, lon], radius (km) }]
+  //   phases: [{ year, center: [lat, lon], radius (km), rx? (km), ry? (km) }]
   // }
+  // radius: used in circle mode (and as fallback in ellipse mode when rx/ry absent)
+  // rx: east-west semi-axis in km (ellipse mode only)
+  // ry: north-south semi-axis in km (ellipse mode only)
   // Phases are linearly interpolated by app.js between keyframes.
   cultures: [
+
+    // ── Pre-PIE Ancestral Populations ────────────────────────────
+    // These cultures show the genetic substrate BEFORE and DURING the PIE
+    // expansion. Their decline as Yamnaya/Corded Ware/Bell Beaker arrive
+    // is the core story of the map's early timeline.
+
+    {
+      id: 'whg',
+      name: 'Western Hunter-Gatherers',
+      branch: 'ancestral',
+      description: 'The indigenous hunter-gatherer populations of Europe from the end of the Ice Age (~14,000 BCE) until replacement by Anatolian farmers and then steppe-derived Corded Ware/Bell Beaker peoples. WHG ancestry — characterised by dark skin, blue eyes, and lactose intolerance — dominated Western and Central Europe for millennia. By the Bronze Age it had been diluted to a minority component, though it survives today at highest levels in Basque, British, and Scandinavian populations. The Corded Ware expansion after 2,900 BCE completed their genetic marginalisation across most of the continent.',
+      startYear: -4000,
+      endYear:   -2600,
+      phases: [
+        { year: -4000, center: [48.0,  4.0], radius: 780, rx: 880, ry: 680 },
+        { year: -3500, center: [48.0,  3.5], radius: 700, rx: 790, ry: 610 },
+        { year: -3000, center: [48.5,  2.5], radius: 590, rx: 660, ry: 510 },
+        { year: -2800, center: [49.0,  1.5], radius: 450, rx: 500, ry: 390 },
+        { year: -2700, center: [49.0,  0.5], radius: 300, rx: 330, ry: 260 },
+        { year: -2600, center: [49.0,  0.0], radius: 150, rx: 165, ry: 130 },
+      ],
+    },
+
+    {
+      id: 'anf',
+      name: 'European Neolithic Farmers',
+      branch: 'ancestral',
+      description: 'Descendants of Anatolian Neolithic farmers who spread agriculture from Anatolia into Europe beginning ~6,000 BCE, replacing most of the indigenous hunter-gatherers over the following two millennia. By 4,000 BCE they occupied most of Central and Western Europe, building Neolithic monuments including the early phases of Stonehenge, Carnac, and thousands of megalithic tombs. Their genetic signature — high Anatolian Neolithic ancestry — was radically diluted by the Corded Ware and Bell Beaker steppe expansions after 2,900 BCE. The population of modern Sardinia most closely preserves this ancestry, having been least affected by subsequent migrations.',
+      startYear: -4000,
+      endYear:   -2500,
+      phases: [
+        { year: -4000, center: [46.5, 13.0], radius: 1100, rx: 1350, ry: 750 },
+        { year: -3500, center: [47.0, 11.0], radius: 1020, rx: 1260, ry: 700 },
+        { year: -3000, center: [47.5,  9.0], radius:  900, rx: 1100, ry: 620 },
+        { year: -2800, center: [48.0,  8.0], radius:  750, rx:  920, ry: 520 },
+        { year: -2600, center: [48.5,  7.0], radius:  520, rx:  640, ry: 360 },
+        { year: -2500, center: [48.5,  6.5], radius:  280, rx:  340, ry: 195 },
+      ],
+    },
+
+    {
+      id: 'iran_chalcolithic',
+      name: 'Iran Chalcolithic / Zagros Farmers',
+      branch: 'ancestral',
+      description: 'The Chalcolithic farming communities of the Iranian plateau and Zagros Mountains. Their genetic lineage — distinct from Anatolian Neolithic farmers — was a key component in producing the Caucasus Hunter-Gatherer (CHG) ancestry, and through CHG contributed approximately half of the Yamnaya gene pool. Iran Chalcolithic/Neolithic ancestry also flowed south and east through the BMAC corridor into South Asia. Lazaridis et al. 2022 identified this Iranian-related ancestry as a major founding stream of populations from the Levant to South Asia. The lineage persists today at highest levels in populations of the Caucasus, Iran, and South Asia.',
+      startYear: -4000,
+      endYear:   -1500,
+      phases: [
+        { year: -4000, center: [33.0, 49.0], radius: 620 },
+        { year: -3200, center: [33.0, 50.0], radius: 660 },
+        { year: -2500, center: [33.5, 51.0], radius: 610 },
+        { year: -2000, center: [34.0, 52.0], radius: 530 },
+        { year: -1700, center: [34.0, 52.5], radius: 420 },
+        { year: -1500, center: [34.0, 53.0], radius: 280 },
+      ],
+    },
 
     // ── PIE Homeland ──────────────────────────────────────────────
 
@@ -74,12 +138,12 @@ const PIE_DATA = {
       startYear: -3500,
       endYear: -2100,
       phases: [
-        { year: -3500, center: [47.5, 38.0], radius: 600 },
-        { year: -3200, center: [47.5, 40.0], radius: 780 },
-        { year: -2900, center: [47.5, 42.0], radius: 820 },
-        { year: -2500, center: [47.5, 44.0], radius: 750 },
-        { year: -2200, center: [47.5, 44.0], radius: 550 },
-        { year: -2100, center: [47.5, 43.0], radius: 350 },
+        { year: -3500, center: [47.5, 40.0], radius:  750, rx: 1050, ry: 360 },
+        { year: -3200, center: [47.5, 42.0], radius:  950, rx: 1280, ry: 400 },
+        { year: -2900, center: [47.5, 44.0], radius: 1000, rx: 1350, ry: 420 },
+        { year: -2500, center: [47.5, 46.0], radius:  920, rx: 1200, ry: 390 },
+        { year: -2200, center: [47.5, 46.0], radius:  680, rx:  880, ry: 310 },
+        { year: -2100, center: [47.5, 45.0], radius:  420, rx:  540, ry: 220 },
       ],
     },
 
@@ -162,11 +226,11 @@ const PIE_DATA = {
       startYear: -2900,
       endYear: -2350,
       phases: [
-        { year: -2900, center: [52.5, 20.0], radius: 380 },
-        { year: -2700, center: [53.0, 16.0], radius: 660 },
-        { year: -2500, center: [54.0, 14.0], radius: 900 },
-        { year: -2400, center: [55.0, 13.0], radius: 920 },
-        { year: -2350, center: [55.0, 14.0], radius: 850 },
+        { year: -2900, center: [52.5, 20.0], radius: 380, rx:  480, ry: 310 },
+        { year: -2700, center: [53.0, 16.0], radius: 660, rx:  880, ry: 500 },
+        { year: -2500, center: [54.0, 14.0], radius: 900, rx: 1200, ry: 550 },
+        { year: -2400, center: [55.0, 13.0], radius: 920, rx: 1200, ry: 550 },
+        { year: -2350, center: [55.0, 14.0], radius: 850, rx: 1100, ry: 510 },
       ],
     },
 
@@ -185,6 +249,24 @@ const PIE_DATA = {
         { year: -2000, center: [50.5, -3.0], radius: 820 },
         { year: -1800, center: [52.0, -3.0], radius: 750 },
         { year: -1700, center: [53.0, -2.0], radius: 620 },
+      ],
+    },
+
+    {
+      id: 'post_hittite',
+      name: 'Post-Hittite Anatolian (Phrygian, Luwian, Lydian)',
+      branch: 'anatolian',
+      description: 'After the Bronze Age Collapse (~1180 BCE) destroyed the Hittite Empire, several successor states preserved Anatolian Indo-European languages. The Phrygians — who migrated from Thrace into the power vacuum — built a kingdom centred at Gordion (c. 900–695 BCE), famous for the legend of King Midas. Neo-Hittite city-states in southeastern Anatolia and northern Syria continued writing Luwian in hieroglyphic script. The Lydians of western Anatolia (c. 700–547 BCE), who invented coinage, spoke Lydian — another Anatolian IE language. All these languages died as Persian administration (post-547 BCE) and then Hellenization replaced them, making the Anatolian IE branch entirely extinct.',
+      startYear: -1180,
+      endYear:    -300,
+      phases: [
+        { year: -1180, center: [39.5, 32.5], radius: 200 },
+        { year:  -900, center: [39.0, 32.0], radius: 330 },
+        { year:  -750, center: [39.0, 31.5], radius: 400 },
+        { year:  -600, center: [39.0, 31.0], radius: 370 },
+        { year:  -500, center: [38.8, 30.5], radius: 280 },
+        { year:  -400, center: [38.5, 30.0], radius: 180 },
+        { year:  -300, center: [38.5, 29.5], radius:  80 },
       ],
     },
 
@@ -290,6 +372,21 @@ const PIE_DATA = {
     // ── Germanic Branch ───────────────────────────────────────────
 
     {
+      id: 'jastorf',
+      name: 'Jastorf Culture (Proto-Germanic)',
+      branch: 'germanic',
+      description: 'The Jastorf culture (c. 600–1 BCE) of northern Germany, Denmark, and southern Scandinavia is widely identified as the archaeological culture of early Proto-Germanic speakers — the ancestral tradition for all modern Germanic languages. Named for a cemetery site near Hamburg. Jastorf developed from the Nordic Bronze Age, with characteristic cremation burials, low mounds, and distinctive iron metalwork. It is from this tradition that the historically attested Germanic tribes (Goths, Franks, Saxons, Angles, Lombards, Vandals) descended.',
+      startYear: -600,
+      endYear:      0,
+      phases: [
+        { year: -600, center: [53.5,  9.5], radius: 220 },
+        { year: -400, center: [53.5, 10.0], radius: 300 },
+        { year: -200, center: [53.0, 10.5], radius: 370 },
+        { year:    0, center: [53.0, 11.0], radius: 390 },
+      ],
+    },
+
+    {
       id: 'germanic',
       name: 'Germanic Peoples',
       branch: 'germanic',
@@ -369,13 +466,30 @@ const PIE_DATA = {
       startYear: -2000,
       endYear: -900,
       phases: [
-        { year: -2000, center: [50.0, 66.0], radius: 580 },
-        { year: -1800, center: [49.5, 67.0], radius: 800 },
-        { year: -1600, center: [49.0, 68.0], radius: 950 },
-        { year: -1400, center: [48.5, 68.0], radius: 900 },
-        { year: -1200, center: [48.0, 67.0], radius: 820 },
-        { year: -1000, center: [47.5, 66.0], radius: 720 },
-        { year:  -900, center: [47.0, 65.0], radius: 600 },
+        { year: -2000, center: [50.0, 66.0], radius: 580, rx:  800, ry: 490 },
+        { year: -1800, center: [49.5, 67.0], radius: 800, rx: 1100, ry: 580 },
+        { year: -1600, center: [49.0, 68.0], radius: 950, rx: 1300, ry: 580 },
+        { year: -1400, center: [48.5, 68.0], radius: 900, rx: 1250, ry: 560 },
+        { year: -1200, center: [48.0, 67.0], radius: 820, rx: 1120, ry: 510 },
+        { year: -1000, center: [47.5, 66.0], radius: 720, rx:  980, ry: 450 },
+        { year:  -900, center: [47.0, 65.0], radius: 600, rx:  820, ry: 380 },
+      ],
+    },
+
+    {
+      id: 'bmac',
+      name: 'BMAC / Oxus Civilization',
+      branch: 'indo_iranian',
+      description: 'The Bactria-Margiana Archaeological Complex (c. 2300–1500 BCE), also called the Oxus Civilization, was a sophisticated Bronze Age culture at the crossroads of the ancient world — in modern Turkmenistan, Uzbekistan, Afghanistan, and Tajikistan. BMAC had monumental mud-brick architecture, a distinctive art style, and long-distance trade connections from the Persian Gulf to the Indus Valley. Crucially, BMAC was the key intermediary in the Indo-Aryan migration south: steppe-derived Andronovo people mixed with BMAC populations before continuing into South Asia. Narasimhan et al. 2019 showed that South Asian steppe ancestry arrived through this BMAC corridor rather than directly from the open steppe — BMAC itself shows no steppe ancestry; the admixture happened at this boundary zone.',
+      startYear: -2300,
+      endYear:   -1400,
+      phases: [
+        { year: -2300, center: [38.5, 61.5], radius: 290 },
+        { year: -2100, center: [38.0, 62.0], radius: 390 },
+        { year: -1900, center: [37.5, 62.5], radius: 430 },
+        { year: -1700, center: [37.0, 63.0], radius: 380 },
+        { year: -1500, center: [37.0, 63.5], radius: 280 },
+        { year: -1400, center: [37.0, 64.0], radius: 160 },
       ],
     },
 
@@ -428,14 +542,14 @@ const PIE_DATA = {
       startYear: -1000,
       endYear: 350,
       phases: [
-        { year: -1000, center: [47.0, 45.0], radius: 380 },
-        { year:  -800, center: [47.0, 42.0], radius: 550 },
-        { year:  -600, center: [47.0, 38.0], radius: 700 },
-        { year:  -400, center: [47.0, 37.0], radius: 750 },
-        { year:  -200, center: [47.0, 38.0], radius: 700 },
-        { year:     0, center: [47.5, 40.0], radius: 650 },
-        { year:   200, center: [47.5, 42.0], radius: 550 },
-        { year:   350, center: [47.0, 43.0], radius: 400 },
+        { year: -1000, center: [47.0, 45.0], radius: 380, rx:  560, ry: 310 },
+        { year:  -800, center: [47.0, 42.0], radius: 550, rx:  820, ry: 380 },
+        { year:  -600, center: [47.0, 38.0], radius: 700, rx: 1050, ry: 430 },
+        { year:  -400, center: [47.0, 37.0], radius: 750, rx: 1050, ry: 430 },
+        { year:  -200, center: [47.0, 38.0], radius: 700, rx:  980, ry: 400 },
+        { year:     0, center: [47.5, 40.0], radius: 650, rx:  900, ry: 370 },
+        { year:   200, center: [47.5, 42.0], radius: 550, rx:  760, ry: 330 },
+        { year:   350, center: [47.0, 43.0], radius: 400, rx:  560, ry: 280 },
       ],
     },
 
@@ -456,6 +570,26 @@ const PIE_DATA = {
         { year:     0, center: [40.0, 44.5], radius: 290 },
         { year:   300, center: [40.0, 44.8], radius: 270 },
         { year:   500, center: [40.0, 44.5], radius: 250 },
+      ],
+    },
+
+    // ── Albanian Branch ───────────────────────────────────────────
+
+    {
+      id: 'illyrian',
+      name: 'Illyrian / Paleo-Balkan Peoples',
+      branch: 'albanian',
+      description: 'The ancient Illyrians and related Paleo-Balkan peoples (Dacians, Thracians, Paeonians) occupied the western Balkans and surrounding regions from the late Bronze Age onward. Albanian — the only surviving Paleo-Balkan IE language — preserves a layer of pre-Latin, pre-Greek vocabulary indicating its ancestors lived in the Balkans long before Roman or Greek expansion. Though attested only from the 15th century CE, Albanian is the probable descendant of Illyrian or a closely related language. The Albanian branch is one of the most isolated in the IE family, with no close surviving relatives. Genetic studies confirm that Albanian speakers carry Balkan Bronze Age ancestry with steppe admixture from Corded Ware expansions.',
+      startYear: -1200,
+      endYear:     500,
+      phases: [
+        { year: -1200, center: [42.0, 19.5], radius: 220 },
+        { year:  -900, center: [41.8, 19.5], radius: 280 },
+        { year:  -600, center: [41.5, 20.0], radius: 320 },
+        { year:  -300, center: [41.2, 19.8], radius: 290 },
+        { year:     0, center: [41.0, 20.0], radius: 260 },
+        { year:   250, center: [41.0, 20.0], radius: 240 },
+        { year:   500, center: [41.0, 20.0], radius: 210 },
       ],
     },
 
@@ -731,6 +865,44 @@ const PIE_DATA = {
     },
 
     {
+      id: 'mig_andronovo_bmac',
+      name: 'Indo-Iranian: Andronovo → BMAC corridor → South Asia',
+      branch: 'indo_iranian',
+      description: 'c. 2000–1500 BCE — Steppe pastoralists from the Andronovo horizon moved south through Central Asia, mixing with BMAC (Oxus Civilization) populations before continuing into the Indian subcontinent. Narasimhan et al. 2019 demonstrated that South Asian steppe ancestry arrived via this BMAC intermediary zone rather than directly from the open steppe — a critical refinement of the Indo-Aryan migration model.',
+      startYear:    -2100,
+      endYear:        500,
+      animateStart: -2000,
+      animateEnd:   -1500,
+      path: [
+        [50.0, 65.0],
+        [45.0, 63.5],
+        [41.0, 62.0],
+        [38.5, 62.0],
+        [36.0, 63.5],
+        [33.0, 66.0],
+        [30.5, 69.5],
+      ],
+    },
+
+    {
+      id: 'mig_phrygian',
+      name: 'Phrygian migration into Anatolia',
+      branch: 'anatolian',
+      description: 'c. 1200–900 BCE — Following the Bronze Age Collapse and the destruction of the Hittite Empire, Phrygian-speaking peoples from Thrace and the southern Balkans moved east into the power vacuum in central Anatolia. They established a powerful kingdom centred at Gordion — legendary home of the Gordian Knot and King Midas — and were the dominant power in Anatolia until Cimmerian raids devastated them around 695 BCE.',
+      startYear:    -1200,
+      endYear:        -30,
+      animateStart: -1180,
+      animateEnd:    -900,
+      path: [
+        [42.5, 25.5],
+        [41.5, 28.0],
+        [40.5, 30.5],
+        [39.5, 32.5],
+        [39.0, 33.0],
+      ],
+    },
+
+    {
       id: 'mig_slavic_balkan',
       name: 'Slavic Expansion into Balkans',
       branch: 'baltic_slavic',
@@ -753,30 +925,34 @@ const PIE_DATA = {
   // ── Timeline events ──────────────────────────────────────────────
   events: [
     { year: -4500, name: 'Sredny Stog / Khvalynsk cultures: early horse domestication on Pontic steppe', branch: 'homeland' },
-    { year: -3800, name: 'Earliest wagon burials on Pontic-Caspian steppe; PIE proto-language forming', branch: 'homeland' },
-    { year: -3500, name: 'Yamnaya culture fully formed — PIE homeland established', branch: 'homeland' },
+    { year: -4000, name: 'European Neolithic: Anatolian farmers dominant across Europe; WHG hunter-gatherers persist in refugia', branch: 'ancestral' },
+    { year: -3800, name: 'Earliest wagon burials on Pontic-Caspian steppe; EHG + CHG mixing produces early Yamnaya ancestry', branch: 'homeland' },
+    { year: -3500, name: 'Yamnaya culture fully formed — PIE homeland established on Pontic-Caspian steppe', branch: 'homeland' },
     { year: -3300, name: 'Afanasievo migration: Yamnaya groups travel east to Altai Mountains', branch: 'tocharian' },
     { year: -3100, name: 'Yamnaya expansion westward begins — proto-Corded Ware migration', branch: 'homeland' },
     { year: -2900, name: 'Corded Ware culture appears in Central Europe — 75% steppe ancestry', branch: 'homeland' },
     { year: -2800, name: 'Bell Beaker culture begins spreading westward from Central Europe', branch: 'celtic' },
     { year: -2500, name: 'Bell Beaker reaches Britain; massive genetic replacement of Neolithic population', branch: 'celtic' },
     { year: -2400, name: 'Stonehenge completed by Bell Beaker people', branch: 'celtic' },
-    { year: -2200, name: 'Sintashta culture: spoked-wheel war chariot invented in southern Urals', branch: 'indo_iranian' },
-    { year: -2100, name: 'Proto-Greeks enter Greek peninsula; Andronovo culture begins', branch: 'hellenic' },
-    { year: -2000, name: 'Afanasievo descendants move south into Tarim Basin (Tocharians)', branch: 'tocharian' },
-    { year: -1900, name: 'Indo-Aryan migration toward India begins through Hindu Kush passes', branch: 'indo_iranian' },
-    { year: -1800, name: 'Hittite Old Kingdom rises; Hittite is oldest attested IE language', branch: 'anatolian' },
-    { year: -1700, name: 'Sintashta chariots reach China; Andronovo at maximum extent', branch: 'indo_iranian' },
-    { year: -1600, name: 'Mitanni kingdom (Indo-Aryan elite) in northern Syria; Mycenaean Greece begins', branch: 'indo_iranian' },
-    { year: -1500, name: 'Rig Veda composed in Sanskrit; Iranian tribes settle Iranian plateau', branch: 'indo_iranian' },
-    { year: -1400, name: 'Mycenaean Greece at peak; Linear B (Greek) script in use', branch: 'hellenic' },
-    { year: -1350, name: 'Mitanni-Hittite treaty names Vedic gods Mitra, Varuna, Indra, Nasatya', branch: 'indo_iranian' },
-    { year: -1200, name: 'Bronze Age Collapse — Hittite Empire, Mycenaean Greece collapse; Proto-Celtic forming', branch: 'celtic' },
-    { year: -1180, name: 'Hittite Empire destroyed — Anatolian IE languages begin decline', branch: 'anatolian' },
+    { year: -2300, name: 'BMAC (Oxus Civilization) at peak — key corridor between steppe and South Asia', branch: 'indo_iranian' },
+    { year: -2200, name: 'Sintashta culture: spoked-wheel war chariot invented in southern Urals (Librado et al. 2021)', branch: 'indo_iranian' },
+    { year: -2100, name: 'Proto-Greeks enter Greek peninsula; Andronovo culture begins expanding east', branch: 'hellenic' },
+    { year: -2000, name: 'Afanasievo descendants enter Tarim Basin; Andronovo steppe peoples filter through BMAC toward India', branch: 'tocharian' },
+    { year: -1900, name: 'Indo-Aryan migration through BMAC corridor toward India begins (Narasimhan et al. 2019)', branch: 'indo_iranian' },
+    { year: -1800, name: 'Hittite Old Kingdom rises; Hittite is the oldest attested Indo-European language', branch: 'anatolian' },
+    { year: -1700, name: 'Sintashta chariot technology reaches China; Andronovo at maximum extent', branch: 'indo_iranian' },
+    { year: -1600, name: 'Mitanni kingdom (Indo-Aryan elite) established in northern Syria; Mycenaean Greece begins', branch: 'indo_iranian' },
+    { year: -1500, name: 'Rig Veda composed in Sanskrit — oldest Indo-Iranian literature; Iranian tribes settle Iranian plateau', branch: 'indo_iranian' },
+    { year: -1400, name: 'Mycenaean Greece at peak; Linear B (earliest deciphered Greek) in use at palace centres', branch: 'hellenic' },
+    { year: -1350, name: 'Mitanni-Hittite treaty invokes Vedic gods Mitra, Varuna, Indra, Nasatya — confirming Indo-Aryan presence in Syria', branch: 'indo_iranian' },
+    { year: -1200, name: 'Bronze Age Collapse — Hittite Empire and Mycenaean Greece collapse; Phrygians move into Anatolia', branch: 'anatolian' },
+    { year: -1180, name: 'Hittite Empire destroyed — Phrygian and Luwian successor states emerge across Anatolia', branch: 'anatolian' },
+    { year:  -900, name: 'Phrygian kingdom established at Gordion; Lydians rise in western Anatolia — final Anatolian IE cultures', branch: 'anatolian' },
     { year: -900,  name: 'Scythians dominate Pontic steppe; Hallstatt Proto-Celtic culture', branch: 'celtic' },
     { year: -800,  name: 'Homeric epics (Iliad, Odyssey) composed in Greek', branch: 'hellenic' },
     { year: -700,  name: 'Achaemenid Persians emerging; Avesta (Zoroastrian scripture) composed', branch: 'indo_iranian' },
-    { year: -550,  name: 'Achaemenid Persian Empire founded by Cyrus the Great — largest empire yet', branch: 'indo_iranian' },
+    { year: -546,  name: 'Lydia conquered by Cyrus — Lydian language begins decline; last Anatolian IE language entering terminal phase', branch: 'anatolian' },
+    { year: -550,  name: 'Achaemenid Persian Empire founded by Cyrus the Great — largest empire yet seen', branch: 'indo_iranian' },
     { year: -500,  name: 'La Tène Celtic culture begins; Proto-Germanic taking shape in Scandinavia', branch: 'celtic' },
     { year: -450,  name: 'Herodotus writes the Histories — describes Scythians and many IE peoples', branch: 'hellenic' },
     { year: -390,  name: 'Celts sack Rome — Celtic peoples at their geographic peak', branch: 'celtic' },
@@ -810,7 +986,7 @@ const PIE_DATA = {
     {
       id: 'botai', name: 'Botai', lat: 53.50, lon: 70.80,
       date: '~3500 BCE',
-      desc: 'Kazakh steppe site with the earliest evidence of horse domestication — corrals, bit-wear, and mare's milk residue.',
+      desc: 'Kazakh steppe site with the earliest evidence of horse domestication — corrals, bit-wear, and mare\'s milk residue.',
     },
     {
       id: 'sintashta', name: 'Sintashta', lat: 53.05, lon: 60.00,
@@ -840,7 +1016,7 @@ const PIE_DATA = {
     {
       id: 'catalhoyuk', name: 'Çatalhöyük', lat: 37.67, lon: 32.83,
       date: '~7500 BCE',
-      desc: 'Anatolian Neolithic town of up to 10,000 people — one of the world's earliest dense settlements. Anatolian Neolithic Farmer (ANF) ancestry origin.',
+      desc: 'Anatolian Neolithic town of up to 10,000 people — one of the world\'s earliest dense settlements. Anatolian Neolithic Farmer (ANF) ancestry origin.',
     },
     {
       id: 'mohenjo_daro', name: 'Mohenjo-daro', lat: 27.33, lon: 68.13,
@@ -850,7 +1026,7 @@ const PIE_DATA = {
     {
       id: 'gobekli_tepe', name: 'Göbekli Tepe', lat: 37.22, lon: 38.92,
       date: '~9600 BCE',
-      desc: 'World's oldest known monumental structure — hunter-gatherer temple complex in southeastern Anatolia, predating agriculture.',
+      desc: 'World\'s oldest known monumental structure — hunter-gatherer temple complex in southeastern Anatolia, predating agriculture.',
     },
   ],
 
