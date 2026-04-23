@@ -64,8 +64,11 @@ const PIE_DATA = {
   // ── Cultures / peoples ──────────────────────────────────────────
   // Each culture: {
   //   id, name, branch, description, startYear, endYear,
-  //   phases: [{ year, center: [lat, lon], radius (km) }]
+  //   phases: [{ year, center: [lat, lon], radius (km), rx? (km), ry? (km) }]
   // }
+  // radius: used in circle mode (and as fallback in ellipse mode when rx/ry absent)
+  // rx: east-west semi-axis in km (ellipse mode only)
+  // ry: north-south semi-axis in km (ellipse mode only)
   // Phases are linearly interpolated by app.js between keyframes.
   cultures: [
 
@@ -82,12 +85,12 @@ const PIE_DATA = {
       startYear: -4000,
       endYear:   -2600,
       phases: [
-        { year: -4000, center: [48.0,  4.0], radius: 780 },
-        { year: -3500, center: [48.0,  3.5], radius: 700 },
-        { year: -3000, center: [48.5,  2.5], radius: 590 },
-        { year: -2800, center: [49.0,  1.5], radius: 450 },
-        { year: -2700, center: [49.0,  0.5], radius: 300 },
-        { year: -2600, center: [49.0,  0.0], radius: 150 },
+        { year: -4000, center: [48.0,  4.0], radius: 780, rx: 880, ry: 680 },
+        { year: -3500, center: [48.0,  3.5], radius: 700, rx: 790, ry: 610 },
+        { year: -3000, center: [48.5,  2.5], radius: 590, rx: 660, ry: 510 },
+        { year: -2800, center: [49.0,  1.5], radius: 450, rx: 500, ry: 390 },
+        { year: -2700, center: [49.0,  0.5], radius: 300, rx: 330, ry: 260 },
+        { year: -2600, center: [49.0,  0.0], radius: 150, rx: 165, ry: 130 },
       ],
     },
 
@@ -99,12 +102,12 @@ const PIE_DATA = {
       startYear: -4000,
       endYear:   -2500,
       phases: [
-        { year: -4000, center: [46.5, 13.0], radius: 1100 },
-        { year: -3500, center: [47.0, 11.0], radius: 1020 },
-        { year: -3000, center: [47.5,  9.0], radius:  900 },
-        { year: -2800, center: [48.0,  8.0], radius:  750 },
-        { year: -2600, center: [48.5,  7.0], radius:  520 },
-        { year: -2500, center: [48.5,  6.5], radius:  280 },
+        { year: -4000, center: [46.5, 13.0], radius: 1100, rx: 1350, ry: 750 },
+        { year: -3500, center: [47.0, 11.0], radius: 1020, rx: 1260, ry: 700 },
+        { year: -3000, center: [47.5,  9.0], radius:  900, rx: 1100, ry: 620 },
+        { year: -2800, center: [48.0,  8.0], radius:  750, rx:  920, ry: 520 },
+        { year: -2600, center: [48.5,  7.0], radius:  520, rx:  640, ry: 360 },
+        { year: -2500, center: [48.5,  6.5], radius:  280, rx:  340, ry: 195 },
       ],
     },
 
@@ -135,12 +138,12 @@ const PIE_DATA = {
       startYear: -3500,
       endYear: -2100,
       phases: [
-        { year: -3500, center: [47.5, 40.0], radius:  750 },
-        { year: -3200, center: [47.5, 42.0], radius:  950 },
-        { year: -2900, center: [47.5, 44.0], radius: 1000 },
-        { year: -2500, center: [47.5, 46.0], radius:  920 },
-        { year: -2200, center: [47.5, 46.0], radius:  680 },
-        { year: -2100, center: [47.5, 45.0], radius:  420 },
+        { year: -3500, center: [47.5, 40.0], radius:  750, rx: 1050, ry: 360 },
+        { year: -3200, center: [47.5, 42.0], radius:  950, rx: 1280, ry: 400 },
+        { year: -2900, center: [47.5, 44.0], radius: 1000, rx: 1350, ry: 420 },
+        { year: -2500, center: [47.5, 46.0], radius:  920, rx: 1200, ry: 390 },
+        { year: -2200, center: [47.5, 46.0], radius:  680, rx:  880, ry: 310 },
+        { year: -2100, center: [47.5, 45.0], radius:  420, rx:  540, ry: 220 },
       ],
     },
 
@@ -223,11 +226,11 @@ const PIE_DATA = {
       startYear: -2900,
       endYear: -2350,
       phases: [
-        { year: -2900, center: [52.5, 20.0], radius: 380 },
-        { year: -2700, center: [53.0, 16.0], radius: 660 },
-        { year: -2500, center: [54.0, 14.0], radius: 900 },
-        { year: -2400, center: [55.0, 13.0], radius: 920 },
-        { year: -2350, center: [55.0, 14.0], radius: 850 },
+        { year: -2900, center: [52.5, 20.0], radius: 380, rx:  480, ry: 310 },
+        { year: -2700, center: [53.0, 16.0], radius: 660, rx:  880, ry: 500 },
+        { year: -2500, center: [54.0, 14.0], radius: 900, rx: 1200, ry: 550 },
+        { year: -2400, center: [55.0, 13.0], radius: 920, rx: 1200, ry: 550 },
+        { year: -2350, center: [55.0, 14.0], radius: 850, rx: 1100, ry: 510 },
       ],
     },
 
@@ -463,13 +466,13 @@ const PIE_DATA = {
       startYear: -2000,
       endYear: -900,
       phases: [
-        { year: -2000, center: [50.0, 66.0], radius: 580 },
-        { year: -1800, center: [49.5, 67.0], radius: 800 },
-        { year: -1600, center: [49.0, 68.0], radius: 950 },
-        { year: -1400, center: [48.5, 68.0], radius: 900 },
-        { year: -1200, center: [48.0, 67.0], radius: 820 },
-        { year: -1000, center: [47.5, 66.0], radius: 720 },
-        { year:  -900, center: [47.0, 65.0], radius: 600 },
+        { year: -2000, center: [50.0, 66.0], radius: 580, rx:  800, ry: 490 },
+        { year: -1800, center: [49.5, 67.0], radius: 800, rx: 1100, ry: 580 },
+        { year: -1600, center: [49.0, 68.0], radius: 950, rx: 1300, ry: 580 },
+        { year: -1400, center: [48.5, 68.0], radius: 900, rx: 1250, ry: 560 },
+        { year: -1200, center: [48.0, 67.0], radius: 820, rx: 1120, ry: 510 },
+        { year: -1000, center: [47.5, 66.0], radius: 720, rx:  980, ry: 450 },
+        { year:  -900, center: [47.0, 65.0], radius: 600, rx:  820, ry: 380 },
       ],
     },
 
@@ -539,14 +542,14 @@ const PIE_DATA = {
       startYear: -1000,
       endYear: 350,
       phases: [
-        { year: -1000, center: [47.0, 45.0], radius: 380 },
-        { year:  -800, center: [47.0, 42.0], radius: 550 },
-        { year:  -600, center: [47.0, 38.0], radius: 700 },
-        { year:  -400, center: [47.0, 37.0], radius: 750 },
-        { year:  -200, center: [47.0, 38.0], radius: 700 },
-        { year:     0, center: [47.5, 40.0], radius: 650 },
-        { year:   200, center: [47.5, 42.0], radius: 550 },
-        { year:   350, center: [47.0, 43.0], radius: 400 },
+        { year: -1000, center: [47.0, 45.0], radius: 380, rx:  560, ry: 310 },
+        { year:  -800, center: [47.0, 42.0], radius: 550, rx:  820, ry: 380 },
+        { year:  -600, center: [47.0, 38.0], radius: 700, rx: 1050, ry: 430 },
+        { year:  -400, center: [47.0, 37.0], radius: 750, rx: 1050, ry: 430 },
+        { year:  -200, center: [47.0, 38.0], radius: 700, rx:  980, ry: 400 },
+        { year:     0, center: [47.5, 40.0], radius: 650, rx:  900, ry: 370 },
+        { year:   200, center: [47.5, 42.0], radius: 550, rx:  760, ry: 330 },
+        { year:   350, center: [47.0, 43.0], radius: 400, rx:  560, ry: 280 },
       ],
     },
 

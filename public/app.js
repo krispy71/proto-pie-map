@@ -60,7 +60,10 @@ class PIEMigrationMap {
       },
     };
 
-    // Layer state: { id → { circle, label } }
+    // Territory shape mode: 'circle' or 'ellipse'
+    this.shapeMode = 'circle';
+
+    // Layer state: { id → { circle, label, mode } }
     this.territoryLayers  = {};
     // Migration state: { id → { polyline, arrow } }
     this.migrationLayers  = {};
@@ -253,6 +256,11 @@ class PIEMigrationMap {
       overlayOpacVal.textContent = pct + '%';
       this.setOverlayOpacity(pct / 100);
     });
+
+    const shapeModeSelect = document.getElementById('shape-mode-select');
+    shapeModeSelect.addEventListener('change', () => {
+      this.setShapeMode(shapeModeSelect.value);
+    });
   }
 
   updateSpeedLabel() {
@@ -406,17 +414,35 @@ class PIEMigrationMap {
       const branch = this.data.branches[culture.branch];
       const radiusM = state.radius * 1000; // km → metres
 
+      const existingLayer = this.territoryLayers[id];
+      // Recreate layer if it was built in a different shape mode
+      if (existingLayer && existingLayer.mode !== this.shapeMode) {
+        this.territoryGroup.removeLayer(existingLayer.circle);
+        this.labelGroup.removeLayer(existingLayer.label);
+        delete this.territoryLayers[id];
+      }
+
       if (!this.territoryLayers[id]) {
-        // Create new circle
-        const circle = L.circle(state.center, {
-          radius:      radiusM,
+        // Create new territory shape
+        const shapeOpts = {
           color:       branch.color,
           fillColor:   branch.color,
           fillOpacity: 0.22 * this.overlayOpacity,
           weight:      1.8,
           opacity:     0.7  * this.overlayOpacity,
           className:   'territory-circle',
-        });
+        };
+
+        let shape;
+        if (this.shapeMode === 'ellipse') {
+          // Use rx/ry if available; fall back to radius as a circle
+          const rx = state.rx != null ? state.rx : state.radius;
+          const ry = state.ry != null ? state.ry : state.radius;
+          const pts = this._generateEllipse(state.center, rx, ry);
+          shape = L.polygon(pts, shapeOpts);
+        } else {
+          shape = L.circle(state.center, { ...shapeOpts, radius: radiusM });
+        }
 
         // Create label marker
         const label = L.marker(state.center, {
@@ -431,28 +457,35 @@ class PIEMigrationMap {
         });
 
         // Click handler for info panel
-        circle.on('click', () => this.showInfo(culture));
-        circle.on('mouseover', function () {
+        shape.on('click', () => this.showInfo(culture));
+        shape.on('mouseover', function () {
           this.setStyle({ fillOpacity: 0.38, weight: 2.5 });
         });
-        circle.on('mouseout', function () {
+        shape.on('mouseout', function () {
           this.setStyle({ fillOpacity: 0.22, weight: 1.8 });
         });
 
-        circle.bindTooltip(`<strong>${culture.name}</strong>`, {
+        shape.bindTooltip(`<strong>${culture.name}</strong>`, {
           className: 'migration-tooltip',
           sticky: true,
         });
 
-        this.territoryGroup.addLayer(circle);
+        this.territoryGroup.addLayer(shape);
         this.labelGroup.addLayer(label);
-        this.territoryLayers[id] = { circle, label };
+        this.territoryLayers[id] = { circle: shape, label, mode: this.shapeMode };
 
       } else {
-        // Update existing circle
-        const { circle, label } = this.territoryLayers[id];
-        circle.setLatLng(state.center);
-        circle.setRadius(radiusM);
+        // Update existing shape
+        const { circle: shape, label } = this.territoryLayers[id];
+        if (this.shapeMode === 'ellipse') {
+          const rx = state.rx != null ? state.rx : state.radius;
+          const ry = state.ry != null ? state.ry : state.radius;
+          const pts = this._generateEllipse(state.center, rx, ry);
+          shape.setLatLngs(pts);
+        } else {
+          shape.setLatLng(state.center);
+          shape.setRadius(radiusM);
+        }
         label.setLatLng(state.center);
         // Update label HTML in case it changed
         label.setIcon(L.divIcon({
@@ -469,24 +502,64 @@ class PIEMigrationMap {
     const phases = culture.phases;
     if (!phases || phases.length === 0) return null;
 
-    if (year <= phases[0].year) return phases[0];
-    if (year >= phases[phases.length - 1].year) return phases[phases.length - 1];
+    if (year <= phases[0].year) return { ...phases[0] };
+    if (year >= phases[phases.length - 1].year) return { ...phases[phases.length - 1] };
 
     for (let i = 0; i < phases.length - 1; i++) {
       const a = phases[i];
       const b = phases[i + 1];
       if (year >= a.year && year <= b.year) {
         const t = (year - a.year) / (b.year - a.year);
-        return {
+        const result = {
           center: [
             a.center[0] + (b.center[0] - a.center[0]) * t,
             a.center[1] + (b.center[1] - a.center[1]) * t,
           ],
           radius: a.radius + (b.radius - a.radius) * t,
         };
+        // Interpolate ellipse axes if present on both keyframes
+        if (a.rx != null && b.rx != null) result.rx = a.rx + (b.rx - a.rx) * t;
+        if (a.ry != null && b.ry != null) result.ry = a.ry + (b.ry - a.ry) * t;
+        return result;
       }
     }
     return null;
+  }
+
+  // ── Ellipse generation ────────────────────────────────────────────
+
+  // Generate a Leaflet-compatible polygon approximating an ellipse.
+  // center: [lat, lon], rx: east-west semi-axis (km), ry: north-south semi-axis (km)
+  // Returns an array of [lat, lon] points.
+  _generateEllipse(center, rx, ry, numPoints = 48) {
+    const lat0 = center[0];
+    const lon0 = center[1];
+    // Convert km axes to degrees
+    const ryDeg = ry / 111.32;
+    const rxDeg = rx / (111.32 * Math.cos(lat0 * Math.PI / 180));
+    const pts = [];
+    for (let i = 0; i < numPoints; i++) {
+      const theta = (2 * Math.PI * i) / numPoints;
+      pts.push([
+        lat0 + ryDeg * Math.sin(theta),
+        lon0 + rxDeg * Math.cos(theta),
+      ]);
+    }
+    return pts;
+  }
+
+  // ── Shape mode ────────────────────────────────────────────────────
+
+  setShapeMode(mode) {
+    if (mode === this.shapeMode) return;
+    this.shapeMode = mode;
+    // Clear all territory layers so they are recreated with the new shape type
+    Object.values(this.territoryLayers).forEach(({ circle, label }) => {
+      this.territoryGroup.removeLayer(circle);
+      this.labelGroup.removeLayer(label);
+    });
+    this.territoryLayers = {};
+    this.renderYear(this.currentYear);
   }
 
   // ── Migration Paths ───────────────────────────────────────────────
