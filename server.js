@@ -1,8 +1,9 @@
-const express    = require('express');
-const path       = require('path');
-const helmet     = require('helmet');
-const morgan     = require('morgan');
-const rateLimit  = require('express-rate-limit');
+const express      = require('express');
+const path         = require('path');
+const helmet       = require('helmet');
+const morgan       = require('morgan');
+const rateLimit    = require('express-rate-limit');
+const compression  = require('compression');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -26,18 +27,19 @@ const MORGAN_FORMAT = process.env.NODE_ENV === 'production'
 
 app.use(morgan(MORGAN_FORMAT));
 
-// ── Security headers (helmet) ────────────────────────────────────────
-// Computed SRI hashes for Leaflet 1.9.4 from unpkg (see docs/SECURITY.md)
-const LEAFLET_CSS_HASH = 'sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H';
-const LEAFLET_JS_HASH  = 'sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH';
+// ── Compression ───────────────────────────────────────────────────────
+// Gzip/Brotli for all text responses — reduces data.js from ~70KB to ~18KB
+app.use(compression());
 
+// ── Security headers (helmet) ────────────────────────────────────────
+// Leaflet is now served locally from /lib/ — no unpkg.com required in CSP
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc:  ["'self'"],
-        scriptSrc:   ["'self'", `'${LEAFLET_JS_HASH}'`,  "https://unpkg.com"],
-        styleSrc:    ["'self'", `'${LEAFLET_CSS_HASH}'`, "https://unpkg.com", "'unsafe-inline'"],
+        scriptSrc:   ["'self'"],
+        styleSrc:    ["'self'", "'unsafe-inline'"],  // unsafe-inline required for Leaflet's injected pane styles
         imgSrc:      ["'self'", "data:", "https://*.basemaps.cartocdn.com",
                       "https://*.tile.opentopomap.org",
                       "https://server.arcgisonline.com"],

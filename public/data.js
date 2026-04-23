@@ -793,4 +793,65 @@ const PIE_DATA = {
     { year:  500,  name: 'Slavic expansion fills vacuum left by Germanic migrations westward', branch: 'baltic_slavic' },
   ],
 
+  // ── Archaeological sites ─────────────────────────────────────────
+  // Shown as toggle-able point markers on the map.
+  // date is a display string; lat/lon are WGS84 decimal degrees.
+  sites: [
+    {
+      id: 'dereivka', name: 'Dereivka', lat: 49.10, lon: 32.80,
+      date: '~4200 BCE',
+      desc: 'Sredny Stog site on the Dnieper with early evidence of horse domestication and bit-wear on horse teeth.',
+    },
+    {
+      id: 'khvalynsk', name: 'Khvalynsk', lat: 52.48, lon: 48.52,
+      date: '~4500 BCE',
+      desc: 'Eneolithic cemetery on the Volga; pre-Yamnaya steppe ancestry mixing WHG and CHG lineages.',
+    },
+    {
+      id: 'botai', name: 'Botai', lat: 53.50, lon: 70.80,
+      date: '~3500 BCE',
+      desc: 'Kazakh steppe site with the earliest evidence of horse domestication — corrals, bit-wear, and mare's milk residue.',
+    },
+    {
+      id: 'sintashta', name: 'Sintashta', lat: 53.05, lon: 60.00,
+      date: '~2100 BCE',
+      desc: 'Fortified settlement on the southern Urals; origin of the spoked-wheel war chariot. Ancestral to Indo-Iranian speakers.',
+    },
+    {
+      id: 'arkaim', name: 'Arkaim', lat: 52.65, lon: 59.56,
+      date: '~2000 BCE',
+      desc: 'Circular fortified Bronze Age town in the Ural steppe; part of the Sintashta "Country of Towns" complex.',
+    },
+    {
+      id: 'mycenae', name: 'Mycenae', lat: 37.73, lon: 22.76,
+      date: '~1600 BCE',
+      desc: 'Centre of Mycenaean civilization; the earliest attested Greek (Linear B). Significant steppe ancestry confirmed by aDNA.',
+    },
+    {
+      id: 'troy', name: 'Troy (Hisarlik)', lat: 39.95, lon: 26.24,
+      date: '~2500 BCE',
+      desc: 'Bronze Age city controlling the Hellespont. Multiple occupation layers; likely an Anatolian-speaking city-state.',
+    },
+    {
+      id: 'stonehenge', name: 'Stonehenge', lat: 51.18, lon: -1.83,
+      date: '~3000 BCE',
+      desc: 'Neolithic monument; by ~2500 BCE the local Neolithic population was largely replaced by Bell Beaker immigrants carrying steppe ancestry.',
+    },
+    {
+      id: 'catalhoyuk', name: 'Çatalhöyük', lat: 37.67, lon: 32.83,
+      date: '~7500 BCE',
+      desc: 'Anatolian Neolithic town of up to 10,000 people — one of the world's earliest dense settlements. Anatolian Neolithic Farmer (ANF) ancestry origin.',
+    },
+    {
+      id: 'mohenjo_daro', name: 'Mohenjo-daro', lat: 27.33, lon: 68.13,
+      date: '~2600 BCE',
+      desc: 'Indus Valley Civilization city; predates Indo-Aryan arrival. The linguistic and genetic relationship between IVC and early Vedic populations remains debated.',
+    },
+    {
+      id: 'gobekli_tepe', name: 'Göbekli Tepe', lat: 37.22, lon: 38.92,
+      date: '~9600 BCE',
+      desc: 'World's oldest known monumental structure — hunter-gatherer temple complex in southeastern Anatolia, predating agriculture.',
+    },
+  ],
+
 }; // end PIE_DATA
