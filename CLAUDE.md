@@ -1,13 +1,13 @@
-# CLAUDE.md — Proto-Indo-European Migration Map
+# CLAUDE.md — Yamnaya Migration Map
 
 Developer and AI-assistant reference for this codebase.
 
 ## What this project is
 
 An interactive browser map visualising the spread of Proto-Indo-European (PIE) languages
-and associated genetic migrations from ~4000 BCE to 500 CE, based on Laura Spinney's
-*Proto: How One Ancient Language Went Global* and the underlying archaeogenetic literature
-(Reich, Haak, Mathieson, Anthony, et al.).
+and associated genetic migrations from ~4000 BCE to 500 CE, based on the archaeogenetic
+and comparative linguistic literature (Haak 2015, Narasimhan 2019, Librado 2021,
+Lazaridis 2022, Reich, Anthony, et al.).
 
 Served by a minimal Express static-file server; all visualisation logic runs client-side
 using Leaflet.js.
