@@ -53,6 +53,27 @@
     <div id="info-dates" aria-label="Date range"></div>
     <p id="info-desc"></p>
     <div id="info-genetics" aria-label="Genetic ancestry note"></div>
+    <div id="info-admixture" aria-label="Estimated genetic ancestry breakdown"></div>
+  </div>
+
+  <!-- Search panel -->
+  <div id="search-panel" role="search" aria-label="Search and filter cultures">
+    <input type="search" id="culture-search"
+           list="culture-datalist"
+           placeholder="Search cultures…"
+           autocomplete="off"
+           aria-label="Filter map by culture name" />
+    <datalist id="culture-datalist"></datalist>
+  </div>
+
+  <!-- Citation panel -->
+  <div id="citation-panel" role="complementary" aria-label="Source citations" class="hidden">
+    <div id="citation-panel-header">
+      <span id="citation-panel-title">Sources</span>
+      <button id="citation-close" aria-label="Close sources panel">✕</button>
+    </div>
+    <div id="citation-year-note" aria-live="polite"></div>
+    <div id="citation-list" role="list"></div>
   </div>
 
   <!-- Legend -->
@@ -149,6 +170,8 @@
       <a href="privacy.html">Privacy Policy</a>
       <span aria-hidden="true">·</span>
       <a href="terms.html">Terms of Use</a>
+      <span aria-hidden="true">·</span>
+      <button id="citation-toggle" aria-expanded="false" aria-controls="citation-panel">Sources</button>
     </div>
 
   </div>
