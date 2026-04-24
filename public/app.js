@@ -67,6 +67,13 @@ class PIEMigrationMap {
     // Territory shape mode: 'circle' or 'ellipse'
     this.shapeMode = 'circle';
 
+    // Search filter (empty string = no filter)
+    this.searchFilter = '';
+
+    // Fast lookup for cultures by id
+    this.culturesById = {};
+    data.cultures.forEach(c => (this.culturesById[c.id] = c));
+
     // Layer state: { id → { circle, label, mode } }
     this.territoryLayers  = {};
     // Migration state: { id → { polyline, arrow } }
@@ -102,8 +109,11 @@ class PIEMigrationMap {
     this.buildLegend();
     this.initControls();
     this.initSites();
+    this.initSearch();
+    this.initCitations();
     this.prerenderMigrationLayers();
     this.renderYear(this.currentYear);
+    this.updateCitations(this.currentYear);
   }
 
   initMap() {
@@ -448,6 +458,7 @@ class PIEMigrationMap {
     this.updateSlider(year);
     this.renderYear(year);
     this.updateEventTicker(year);
+    this.updateCitations(year);
     this._pushUrlStateDebounced();
   }
 
@@ -505,6 +516,7 @@ class PIEMigrationMap {
   renderYear(year) {
     this.updateTerritories(year);
     this.updateMigrations(year);
+    this._applySearchHighlight();
   }
 
   // ── Territory Circles ─────────────────────────────────────────────
@@ -681,6 +693,197 @@ class PIEMigrationMap {
     this.renderYear(this.currentYear);
   }
 
+  // ── Search / filter ───────────────────────────────────────────────
+
+  initSearch() {
+    const input = document.getElementById('culture-search');
+    const datalist = document.getElementById('culture-datalist');
+    if (!input || !datalist) return;
+
+    // Populate datalist with all culture names
+    this.data.cultures.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.name;
+      datalist.appendChild(opt);
+    });
+
+    input.addEventListener('input', () => {
+      this.searchFilter = input.value.trim().toLowerCase();
+      this._applySearchHighlight();
+    });
+
+    // On clear / escape, reset
+    input.addEventListener('search', () => {
+      if (!input.value) {
+        this.searchFilter = '';
+        this._applySearchHighlight();
+      }
+    });
+  }
+
+  _cultureMatchesSearch(culture) {
+    if (!this.searchFilter) return true;
+    const term = this.searchFilter;
+    if (culture.name.toLowerCase().includes(term)) return true;
+    const branch = this.data.branches[culture.branch];
+    if (branch && branch.name.toLowerCase().includes(term)) return true;
+    return false;
+  }
+
+  _applySearchHighlight() {
+    Object.entries(this.territoryLayers).forEach(([id, { circle }]) => {
+      const culture = this.culturesById[id];
+      if (!culture) return;
+      if (!this.searchFilter || this._cultureMatchesSearch(culture)) {
+        circle.setStyle({
+          fillOpacity: 0.22 * this.overlayOpacity,
+          opacity:     0.7  * this.overlayOpacity,
+        });
+      } else {
+        circle.setStyle({ fillOpacity: 0.04, opacity: 0.12 });
+      }
+    });
+  }
+
+  // ── Citation panel ────────────────────────────────────────────────
+
+  initCitations() {
+    const toggle = document.getElementById('citation-toggle');
+    const panel  = document.getElementById('citation-panel');
+    const close  = document.getElementById('citation-close');
+    if (!toggle || !panel) return;
+
+    toggle.addEventListener('click', () => {
+      const isHidden = panel.classList.contains('hidden');
+      panel.classList.toggle('hidden', !isHidden);
+      toggle.setAttribute('aria-expanded', String(isHidden));
+      if (isHidden) this.updateCitations(this.currentYear);
+    });
+
+    close.addEventListener('click', () => {
+      panel.classList.add('hidden');
+      toggle.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  updateCitations(year) {
+    const panel = document.getElementById('citation-panel');
+    if (!panel || panel.classList.contains('hidden')) return;
+    if (!this.data.sources) return;
+
+    const relevant = this.data.sources.filter(
+      s => year >= s.startYear && year <= s.endYear
+    );
+
+    const note = document.getElementById('citation-year-note');
+    if (note) {
+      const abs    = Math.abs(Math.round(year));
+      const suffix = year < 0 ? ' BCE' : ' CE';
+      note.textContent = `Showing sources relevant to ${abs.toLocaleString()}${suffix}`;
+    }
+
+    const list = document.getElementById('citation-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (relevant.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'citation-item';
+      empty.textContent = 'No specific sources for this time period.';
+      list.appendChild(empty);
+      return;
+    }
+
+    relevant.forEach(src => {
+      const item = document.createElement('div');
+      item.className = 'citation-item';
+      item.setAttribute('role', 'listitem');
+
+      const short = document.createElement('span');
+      short.className = 'cit-short';
+      short.textContent = src.short;
+
+      const full = document.createTextNode(src.full);
+
+      item.appendChild(short);
+      item.appendChild(full);
+
+      if (src.doi) {
+        const link = document.createElement('a');
+        link.href = src.doi;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = 'DOI ↗';
+        item.appendChild(link);
+      }
+
+      list.appendChild(item);
+    });
+  }
+
+  // ── Admixture bar chart ───────────────────────────────────────────
+
+  // Ancestry component display config: label, hex color
+  static get ADMIXTURE_COMPONENTS() {
+    return [
+      { key: 'EHG',   label: 'EHG',    color: '#D4843D' },
+      { key: 'CHG',   label: 'CHG',    color: '#9B59B6' },
+      { key: 'WHG',   label: 'WHG',    color: '#2E86C1' },
+      { key: 'ANF',   label: 'ANF',    color: '#1E8449' },
+      { key: 'IranN', label: 'Iran N', color: '#C0392B' },
+      { key: 'Other', label: 'Other',  color: '#5D6D7E' },
+    ];
+  }
+
+  renderAdmixture(culture) {
+    const container = document.getElementById('info-admixture');
+    if (!container) return;
+
+    const adm = culture.admixture;
+    if (!adm) {
+      container.classList.add('hidden');
+      return;
+    }
+
+    container.classList.remove('hidden');
+    container.innerHTML = '';
+
+    const label = document.createElement('div');
+    label.className = 'admixture-label';
+    label.textContent = 'Ancestry estimate';
+    container.appendChild(label);
+
+    const bar = document.createElement('div');
+    bar.className = 'admixture-bar';
+
+    const legend = document.createElement('div');
+    legend.className = 'admixture-legend';
+
+    PIEMigrationMap.ADMIXTURE_COMPONENTS.forEach(({ key, label: lbl, color }) => {
+      const pct = adm[key] || 0;
+      if (pct <= 0) return;
+
+      const seg = document.createElement('div');
+      seg.className = 'admixture-seg';
+      seg.style.width = (pct * 100).toFixed(1) + '%';
+      seg.style.background = color;
+      seg.title = `${lbl} ${Math.round(pct * 100)}%`;
+      bar.appendChild(seg);
+
+      const item = document.createElement('span');
+      item.className = 'adm-item';
+      const swatch = document.createElement('span');
+      swatch.className = 'adm-swatch';
+      swatch.style.background = color;
+      item.appendChild(swatch);
+      item.appendChild(document.createTextNode(`${lbl} ${Math.round(pct * 100)}%`));
+      legend.appendChild(item);
+    });
+
+    container.appendChild(bar);
+    container.appendChild(legend);
+  }
+
   // ── Migration Paths ───────────────────────────────────────────────
 
   prerenderMigrationLayers() {
@@ -839,6 +1042,7 @@ class PIEMigrationMap {
 
     document.getElementById('info-desc').textContent    = culture.description;
     document.getElementById('info-genetics').textContent = genetics ? '🧬 ' + genetics : '';
+    this.renderAdmixture(culture);
 
     const panel = document.getElementById('info-panel');
     panel.classList.remove('hidden');
