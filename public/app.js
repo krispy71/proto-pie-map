@@ -3,6 +3,12 @@
 //  Interactive visualization of Proto-Indo-European migrations
 // ═══════════════════════════════════════════════════════════════════
 
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 class PIEMigrationMap {
   constructor(data) {
     this.data = data;
@@ -249,7 +255,7 @@ class PIEMigrationMap {
 
       const marker = L.marker([site.lat, site.lon], { icon, zIndexOffset: 200 });
       marker.bindTooltip(
-        `<strong>${site.name}</strong><br/><em>${site.date}</em><br/>${site.desc}`,
+        `<strong>${escapeHTML(site.name)}</strong><br/><em>${escapeHTML(site.date)}</em><br/>${escapeHTML(site.desc)}`,
         { className: 'migration-tooltip', sticky: true, maxWidth: 260 }
       );
       this.siteGroup.addLayer(marker);
@@ -579,7 +585,7 @@ class PIEMigrationMap {
         const label = L.marker(state.center, {
           icon: L.divIcon({
             className:   '',
-            html:        `<div class="culture-label" style="color:${branch.color}">${culture.name}</div>`,
+            html:        `<div class="culture-label" style="color:${escapeHTML(branch.color)}">${escapeHTML(culture.name)}</div>`,
             iconSize:    [0, 0],
             iconAnchor:  [0, 0],
           }),
@@ -596,7 +602,7 @@ class PIEMigrationMap {
           this.setStyle({ fillOpacity: 0.22, weight: 1.8 });
         });
 
-        shape.bindTooltip(`<strong>${culture.name}</strong>`, {
+        shape.bindTooltip(`<strong>${escapeHTML(culture.name)}</strong>`, {
           className: 'migration-tooltip',
           sticky: true,
         });
@@ -621,7 +627,7 @@ class PIEMigrationMap {
         // Update label HTML in case it changed
         label.setIcon(L.divIcon({
           className:  '',
-          html:       `<div class="culture-label" style="color:${branch.color}">${culture.name}</div>`,
+          html:       `<div class="culture-label" style="color:${escapeHTML(branch.color)}">${escapeHTML(culture.name)}</div>`,
           iconSize:   [0, 0],
           iconAnchor: [0, 0],
         }));
@@ -910,7 +916,7 @@ class PIEMigrationMap {
       const arrow = L.marker([0, 0], { icon: arrowIcon, interactive: false });
 
       polyline.bindTooltip(
-        `<strong>${mig.name}</strong><br/>${mig.description}`,
+        `<strong>${escapeHTML(mig.name)}</strong><br/>${escapeHTML(mig.description)}`,
         { className: 'migration-tooltip', sticky: true, maxWidth: 280 }
       );
 
