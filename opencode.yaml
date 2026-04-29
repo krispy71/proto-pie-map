@@ -1,4 +1,4 @@
-project_name: "acoustic-did"
+project_name: "proto-pie-map"
 manager:
   model: "claude-4-7-opus" # The "Architect"
   role: "planning, review, architecture"
