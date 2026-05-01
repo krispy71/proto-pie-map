@@ -9,12 +9,20 @@ function escapeHTML(str) {
   return div.innerHTML;
 }
 
+// Dataset registry — populated after all data scripts load
+const DATASETS = {};
+
 class PIEMigrationMap {
   constructor(data) {
-    this.data = data;
+    // Resolve initial dataset from URL state before anything else
+    const _initDataset = new URLSearchParams(location.hash.slice(1)).get('dataset') || 'pie';
+    this.currentDataset = Object.prototype.hasOwnProperty.call(DATASETS, _initDataset)
+      ? _initDataset : 'pie';
+    this.data = DATASETS[this.currentDataset] || data;
 
     // Timeline state
-    this.currentYear  = data.startYear;
+    const _meta = this.data.meta;
+    this.currentYear  = _meta ? _meta.defaultYear : this.data.startYear;
     this.playing      = false;
     this.speedIndex   = 2;   // index into SPEEDS array
     this.SPEEDS       = [10, 25, 50, 100, 200, 400]; // years/second
@@ -204,8 +212,10 @@ class PIEMigrationMap {
     if (!hash) return;
     const params = new URLSearchParams(hash);
 
+    const tMin = this.data.meta ? this.data.meta.timelineMin : this.data.startYear;
+    const tMax = this.data.meta ? this.data.meta.timelineMax : this.data.endYear;
     const year = parseInt(params.get('year'), 10);
-    if (!isNaN(year) && year >= this.data.startYear && year <= this.data.endYear) {
+    if (!isNaN(year) && year >= tMin && year <= tMax) {
       this.currentYear = year;
     }
 
@@ -235,6 +245,9 @@ class PIEMigrationMap {
       .join(',');
     const params = new URLSearchParams();
     params.set('year', Math.round(this.currentYear));
+    if (this.currentDataset && this.currentDataset !== 'pie') {
+      params.set('dataset', this.currentDataset);
+    }
     if (hidden) params.set('hidden', hidden);
     if (!this.sitesVisible) params.set('sites', '0');
     history.replaceState(null, '', '#' + params.toString());
@@ -353,7 +366,7 @@ class PIEMigrationMap {
     btnPlay.addEventListener('click', () => this.togglePlay());
     btnRewind.addEventListener('click', () => {
       this.pause();
-      this.setYear(this.data.startYear);
+      this.setYear(this._timelineMin());
     });
     btnFaster.addEventListener('click', () => {
       this.speedIndex = Math.min(this.speedIndex + 1, this.SPEEDS.length - 1);
@@ -395,6 +408,61 @@ class PIEMigrationMap {
     shapeModeSelect.addEventListener('change', () => {
       this.setShapeMode(shapeModeSelect.value);
     });
+
+    // Dataset picker
+    const datasetSelect = document.getElementById('dataset-select');
+    if (datasetSelect) {
+      datasetSelect.value = this.currentDataset;
+      datasetSelect.addEventListener('change', e => this.switchDataset(e.target.value));
+    }
+  }
+
+  switchDataset(key) {
+    if (!Object.prototype.hasOwnProperty.call(DATASETS, key) || key === this.currentDataset) return;
+    this.currentDataset = key;
+    this.data = DATASETS[key];
+
+    const meta = this.data.meta;
+    const tMin = meta ? meta.timelineMin : this.data.startYear;
+    const tMax = meta ? meta.timelineMax : this.data.endYear;
+    const tDefault = meta ? meta.defaultYear : this.data.startYear;
+
+    // Update timeline bounds
+    const slider = document.getElementById('time-slider');
+    slider.min = tMin;
+    slider.max = tMax;
+    this.currentYear = tDefault;
+
+    // Update header title/subtitle
+    if (meta) {
+      const h1 = document.querySelector('#header h1');
+      const sub = document.querySelector('#header p.subtitle');
+      if (h1) h1.textContent = meta.title;
+      if (sub) sub.textContent = meta.subtitle;
+    }
+
+    // Rebuild visible state for new branches
+    this.branchVisible = {};
+    Object.keys(this.data.branches).forEach(k => (this.branchVisible[k] = true));
+
+    // Rebuild fast culture lookup
+    this.culturesById = {};
+    this.data.cultures.forEach(c => (this.culturesById[c.id] = c));
+
+    // Clear and rebuild layers
+    this.territoryGroup.clearLayers();
+    this.territoryLayers = {};
+    this.migrationGroup.clearLayers();
+    this.migrationLayers = {};
+    this.siteGroup.clearLayers();
+    this.labelGroup.clearLayers();
+
+    this.buildLegend();
+    this.initSites();
+    this.prerenderMigrationLayers();
+    this.renderYear(this.currentYear);
+    this.updateCitations(this.currentYear);
+    this._pushUrlState();
   }
 
   updateSpeedLabel() {
@@ -404,13 +472,21 @@ class PIEMigrationMap {
       mult < 1 ? `${mult}×` : `${mult}×`;
   }
 
+  _timelineMax() {
+    return this.data.meta ? this.data.meta.timelineMax : this.data.endYear;
+  }
+
+  _timelineMin() {
+    return this.data.meta ? this.data.meta.timelineMin : this.data.startYear;
+  }
+
   togglePlay() {
     if (this.playing) {
       this.pause();
     } else {
       if (this.prefersReducedMotion) return; // honour OS motion preference
-      if (this.currentYear >= this.data.endYear) {
-        this.setYear(this.data.startYear);
+      if (this.currentYear >= this._timelineMax()) {
+        this.setYear(this._timelineMin());
       }
       this.play();
     }
@@ -446,8 +522,8 @@ class PIEMigrationMap {
       const deltaYears = deltaSec * this.SPEEDS[this.speedIndex];
       const newYear    = this.currentYear + deltaYears;
 
-      if (newYear >= this.data.endYear) {
-        this.setYear(this.data.endYear);
+      if (newYear >= this._timelineMax()) {
+        this.setYear(this._timelineMax());
         this.pause();
         return;
       }
@@ -488,7 +564,9 @@ class PIEMigrationMap {
     slider.setAttribute('aria-valuetext', yearText);
 
     // Gradient fill
-    const pct = ((year - this.data.startYear) / (this.data.endYear - this.data.startYear)) * 100;
+    const tMin = this.data.meta ? this.data.meta.timelineMin : this.data.startYear;
+    const tMax = this.data.meta ? this.data.meta.timelineMax : this.data.endYear;
+    const pct = ((year - tMin) / (tMax - tMin)) * 100;
     slider.style.setProperty('--pct', pct.toFixed(2) + '%');
   }
 
@@ -1092,6 +1170,31 @@ document.head.appendChild(labelStyle);
 // ── Bootstrap ─────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+  // ── Splash page (first visit only, localStorage) ─────────────────
+  const splash = document.getElementById('splash-overlay');
+  const disclaimerOverlay = document.getElementById('disclaimer-overlay');
+  if (splash) {
+    if (localStorage.getItem('splash-dismissed')) {
+      // Returning visitor — skip splash entirely
+      splash.classList.add('hidden');
+    } else {
+      // First visit — hide disclaimer until splash is dismissed
+      if (disclaimerOverlay) disclaimerOverlay.classList.add('hidden');
+      document.getElementById('splash-enter').addEventListener('click', () => {
+        localStorage.setItem('splash-dismissed', '1');
+        splash.classList.add('leaving');
+        splash.addEventListener('animationend', () => {
+          splash.classList.add('hidden');
+          splash.classList.remove('leaving');
+          // Show disclaimer after splash (also first visit, so not yet dismissed)
+          if (disclaimerOverlay && !sessionStorage.getItem('disclaimer-dismissed')) {
+            disclaimerOverlay.classList.remove('hidden');
+          }
+        }, { once: true });
+      });
+    }
+  }
+
   // ── Disclaimer overlay ───────────────────────────────────────────
   const overlay = document.getElementById('disclaimer-overlay');
   if (overlay) {
@@ -1102,6 +1205,12 @@ document.addEventListener('DOMContentLoaded', () => {
       overlay.classList.add('hidden');
       sessionStorage.setItem('disclaimer-dismissed', '1');
     });
+  }
+
+  // ── Dataset registry ─────────────────────────────────────────────
+  DATASETS.pie = PIE_DATA;
+  if (typeof CIVILIZATIONS_DATA !== 'undefined') {
+    DATASETS.civilizations = CIVILIZATIONS_DATA;
   }
 
   // ── Map ──────────────────────────────────────────────────────────

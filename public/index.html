@@ -30,7 +30,7 @@
   <div id="header" role="banner">
     <div id="header-inner">
       <h1>YAMNAYA</h1>
-      <p>An Interactive Map of Indo-European Language Origins &nbsp;·&nbsp; From the Pontic steppe to the ends of the earth</p>
+      <p class="subtitle">An Interactive Map of Indo-European Language Origins &nbsp;·&nbsp; From the Pontic steppe to the ends of the earth</p>
     </div>
     <div id="header-note" aria-label="Map disclaimer">Modern borders shown for reference only</div>
   </div>
@@ -90,6 +90,14 @@
   <!-- Map Controls -->
   <div id="map-controls" role="region" aria-label="Map display settings">
     <div id="map-controls-title" aria-hidden="true">Map Display</div>
+
+    <div class="map-ctrl-row">
+      <label class="map-ctrl-label" for="dataset-select">Visualization</label>
+      <select id="dataset-select" aria-label="Choose visualization dataset">
+        <option value="pie">PIE Migrations (4000 BCE – 500 CE)</option>
+        <option value="civilizations">World Civilizations (10,000 BCE – 1500 CE)</option>
+      </select>
+    </div>
 
     <div class="map-ctrl-row">
       <label class="map-ctrl-label" for="map-style-select">Map style</label>
@@ -176,6 +184,35 @@
 
   </div>
 
+  <!-- Splash page — shown once ever (localStorage), replaced by disclaimer on return visits -->
+  <div id="splash-overlay" role="dialog" aria-modal="true" aria-labelledby="splash-title">
+    <div id="splash-box">
+      <div id="splash-eyebrow">An Interactive Historical Map</div>
+      <h1 id="splash-title">YAMNAYA</h1>
+      <p id="splash-tagline">From the Pontic steppe to the ends of the earth</p>
+      <div id="splash-divider"></div>
+      <p id="splash-body">
+        Explore 300,000 years of human prehistory — from the first migrations out of Africa
+        to the rise of civilizations on every continent. Animate the spread of the
+        Proto-Indo-European languages, trace the Bantu expansion, follow Polynesian seafarers
+        across the Pacific, and watch the Americas come alive after the first crossing of Beringia.
+      </p>
+      <div id="splash-datasets">
+        <div class="splash-dataset">
+          <span class="splash-dataset-label">PIE Migrations</span>
+          <span class="splash-dataset-range">4,000 BCE – 500 CE</span>
+        </div>
+        <div class="splash-dataset-sep">·</div>
+        <div class="splash-dataset">
+          <span class="splash-dataset-label">World Civilizations</span>
+          <span class="splash-dataset-range">10,000 BCE – 1,500 CE</span>
+        </div>
+      </div>
+      <button id="splash-enter" autofocus>Explore the Map →</button>
+      <p id="splash-note">Territorial extents are schematic approximations. Dates subject to scholarly revision.</p>
+    </div>
+  </div>
+
   <!-- Disclaimer overlay — shown once per session, dismissed to sessionStorage -->
   <div id="disclaimer-overlay" role="dialog" aria-modal="true" aria-labelledby="disclaimer-title">
     <div id="disclaimer-box">
@@ -200,6 +237,7 @@
 
   <script src="lib/leaflet.js"></script>
   <script src="data.js"></script>
+  <script src="civilizations-data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
