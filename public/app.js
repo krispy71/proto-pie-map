@@ -655,9 +655,8 @@ class PIEMigrationMap {
   // ── Territory Circles ─────────────────────────────────────────────
 
   updateTerritories(year) {
-    const cultures = this.data.cultures;
-
-    cultures.forEach(culture => {
+    for (const familyData of Object.values(this.activeFamilies)) {
+    familyData.cultures.forEach(culture => {
       const id      = culture.id;
       const visible = this.branchVisible[culture.branch]
                    && year >= culture.startYear
@@ -675,7 +674,7 @@ class PIEMigrationMap {
         return;
       }
 
-      const branch = this.data.branches[culture.branch];
+      const branch = familyData.branches[culture.branch];
       const radiusM = state.radius * 1000; // km → metres
 
       const existingLayer = this.territoryLayers[id];
@@ -759,7 +758,8 @@ class PIEMigrationMap {
           iconAnchor: [0, 0],
         }));
       }
-    });
+    }); // end forEach culture
+    } // end for activeFamilies
   }
 
   interpolateCulture(culture, year) {
@@ -1019,11 +1019,11 @@ class PIEMigrationMap {
 
   // ── Migration Paths ───────────────────────────────────────────────
 
-  prerenderMigrationLayers() {
-    this.data.migrations.forEach(mig => {
-      const branch = this.data.branches[mig.branch];
+  prerenderMigrationLayersForFamily(data) {
+    data.migrations.forEach(mig => {
+      const branch = data.branches[mig.branch];
+      if (!branch) return;
 
-      // Full polyline (placeholder — coordinates updated in updateMigrations)
       const polyline = L.polyline([[0, 0]], {
         color:     branch.color,
         weight:    3.0,
@@ -1033,7 +1033,6 @@ class PIEMigrationMap {
         lineCap:   'round',
       });
 
-      // Arrow marker at path tip
       const arrowIcon = L.divIcon({
         className: '',
         html:      `<div class="mig-arrow" style="color:${branch.color};border-color:${branch.color}"></div>`,
@@ -1055,7 +1054,8 @@ class PIEMigrationMap {
   }
 
   updateMigrations(year) {
-    this.data.migrations.forEach(mig => {
+    for (const _familyData of Object.values(this.activeFamilies)) {
+    _familyData.migrations.forEach(mig => {
       const { polyline, arrow } = this.migrationLayers[mig.id];
       const branchVis = this.branchVisible[mig.branch];
 
@@ -1102,7 +1102,8 @@ class PIEMigrationMap {
         iconSize:  [14, 14],
         iconAnchor:[7, 7],
       }));
-    });
+    }); // end forEach mig
+    } // end for activeFamilies
   }
 
   getMigrationProgress(mig, year) {
@@ -1143,7 +1144,8 @@ class PIEMigrationMap {
   }
 
   arrowHtml(branch, bearing) {
-    const color = this.data.branches[branch].color;
+    const b = this._getBranch(branch);
+    const color = b ? b.color : '#888888';
     return `<div style="
       width:0; height:0;
       border-left:6px solid transparent;
