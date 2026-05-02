@@ -16,6 +16,18 @@ const PIE_DATA = {
   startYear: -4000,
   endYear:    500,
 
+  familyKey: 'pie',
+  familyLabel: 'Proto-Indo-European',
+
+  admixtureComponents: {
+    EHG:   { label: 'EHG',    color: '#D4843D' },
+    CHG:   { label: 'CHG',    color: '#9B59B6' },
+    WHG:   { label: 'WHG',    color: '#2E86C1' },
+    ANF:   { label: 'ANF',    color: '#1E8449' },
+    IranN: { label: 'Iran N', color: '#C0392B' },
+    Other: { label: 'Other',  color: '#5D6D7E' },
+  },
+
   meta: {
     timelineMin: -4000,
     timelineMax:  500,

@@ -13,16 +13,12 @@ function escapeHTML(str) {
 const DATASETS = {};
 
 class PIEMigrationMap {
-  constructor(data) {
-    // Resolve initial dataset from URL state before anything else
-    const _initDataset = new URLSearchParams(location.hash.slice(1)).get('dataset') || 'pie';
-    this.currentDataset = Object.prototype.hasOwnProperty.call(DATASETS, _initDataset)
-      ? _initDataset : 'pie';
-    this.data = DATASETS[this.currentDataset] || data;
+  constructor() {
+    // Multi-family state (replaces single-dataset pattern)
+    this.activeFamilies = {};   // { familyKey → dataObject }
 
-    // Timeline state
-    const _meta = this.data.meta;
-    this.currentYear  = _meta ? _meta.defaultYear : this.data.startYear;
+    // Timeline state — default year set when first family activates
+    this.currentYear  = -3500;
     this.playing      = false;
     this.speedIndex   = 2;   // index into SPEEDS array
     this.SPEEDS       = [10, 25, 50, 100, 200, 400]; // years/second
@@ -84,9 +80,8 @@ class PIEMigrationMap {
     // Search filter (empty string = no filter)
     this.searchFilter = '';
 
-    // Fast lookup for cultures by id
+    // Fast lookup: { id → { culture, familyKey } }
     this.culturesById = {};
-    data.cultures.forEach(c => (this.culturesById[c.id] = c));
 
     // Layer state: { id → { circle, label, mode } }
     this.territoryLayers  = {};
@@ -94,8 +89,7 @@ class PIEMigrationMap {
     this.migrationLayers  = {};
 
     // Legend filter (branch → visible boolean)
-    this.branchVisible = {};
-    Object.keys(data.branches).forEach(k => (this.branchVisible[k] = true));
+    this.branchVisible = {};   // populated by activateFamily
 
     // Closest upcoming event (for ticker)
     this.lastTickerYear = null;
@@ -118,14 +112,40 @@ class PIEMigrationMap {
   // ── Initialization ───────────────────────────────────────────────
 
   init() {
-    this._parseUrlState();       // must be before initMap/buildLegend
+    this._parseUrlState();
     this.initMap();
-    this.buildLegend();
     this.initControls();
+    this.initCitations();
+
+    // Activate families from URL state (or default to PIE)
+    const familyKeys = (this._initFamilyKeys && this._initFamilyKeys.length > 0)
+      ? this._initFamilyKeys : ['pie'];
+    familyKeys.forEach(key => this.activateFamily(key, { silent: true }));
+
+    // Apply hidden branches
+    (this._initHidden || []).forEach(key => {
+      if (Object.prototype.hasOwnProperty.call(this.branchVisible, key)) {
+        this.branchVisible[key] = false;
+      }
+    });
+
+    // Apply year from URL (clamp to union range)
+    if (this._initYear !== undefined) {
+      const { min, max } = this._calcTimelineUnion();
+      if (this._initYear >= min && this._initYear <= max) {
+        this.currentYear = this._initYear;
+      }
+    }
+
+    this._updateTimelineRange();
     this.initSites();
     this.initSearch();
-    this.initCitations();
-    this.prerenderMigrationLayers();
+    this.buildLegend();
+    this._buildFamilyPanel();
+    this._updateHeaderSubtitle();
+    for (const [key, data] of Object.entries(this.activeFamilies)) {
+      this.prerenderMigrationLayersForFamily(data);
+    }
     this.renderYear(this.currentYear);
     this.updateCitations(this.currentYear);
   }
@@ -212,74 +232,73 @@ class PIEMigrationMap {
     if (!hash) return;
     const params = new URLSearchParams(hash);
 
-    const tMin = this.data.meta ? this.data.meta.timelineMin : this.data.startYear;
-    const tMax = this.data.meta ? this.data.meta.timelineMax : this.data.endYear;
-    const year = parseInt(params.get('year'), 10);
-    if (!isNaN(year) && year >= tMin && year <= tMax) {
-      this.currentYear = year;
+    // Legacy civilizations standalone mode
+    const legacyDataset = params.get('dataset');
+    if (legacyDataset === 'civilizations') {
+      this._initFamilyKeys = ['civilizations'];
+      return;
     }
 
+    // Families param: "families=pie,dravidian"
+    const familiesParam = params.get('families');
+    if (familiesParam) {
+      this._initFamilyKeys = familiesParam.split(',').filter(k =>
+        Object.prototype.hasOwnProperty.call(DATASETS, k)
+      );
+    }
+
+    // Year (clamped after families are activated)
+    const rawYear = parseInt(params.get('year'), 10);
+    if (!isNaN(rawYear)) this._initYear = rawYear;
+
+    // Tile style
     const style = params.get('style');
     if (style && Object.prototype.hasOwnProperty.call(this.TILE_STYLES, style)) {
       this._initStyle = style;
     }
 
+    // Hidden branches
     const hidden = params.get('hidden');
-    if (hidden) {
-      hidden.split(',').forEach(key => {
-        if (key && Object.prototype.hasOwnProperty.call(this.branchVisible, key)) {
-          this.branchVisible[key] = false;
-        }
-      });
-    }
+    if (hidden) this._initHidden = hidden.split(',').filter(Boolean);
 
-    if (params.get('sites') === '0') {
-      this.sitesVisible = false;
-    }
+    // Sites visibility
+    if (params.get('sites') === '0') this.sitesVisible = false;
   }
 
   _pushUrlState() {
+    const params = new URLSearchParams();
+    params.set('year', Math.round(this.currentYear));
+
+    const activeKeys = Object.keys(this.activeFamilies);
+    if (activeKeys.length === 1 && activeKeys[0] === 'pie') {
+      // default — omit families param
+    } else if (activeKeys.length > 0) {
+      params.set('families', activeKeys.join(','));
+    }
+
     const hidden = Object.entries(this.branchVisible)
       .filter(([, v]) => !v)
       .map(([k]) => k)
       .join(',');
-    const params = new URLSearchParams();
-    params.set('year', Math.round(this.currentYear));
-    if (this.currentDataset && this.currentDataset !== 'pie') {
-      params.set('dataset', this.currentDataset);
-    }
     if (hidden) params.set('hidden', hidden);
     if (!this.sitesVisible) params.set('sites', '0');
+
     history.replaceState(null, '', '#' + params.toString());
   }
 
   // ── Archaeological Sites ─────────────────────────────────────────
 
   initSites() {
-    if (!this.data.sites) return;
-
-    this.data.sites.forEach(site => {
-      const icon = L.divIcon({
-        className: '',
-        html: '<div class="site-marker-icon"></div>',
-        iconSize:   [10, 10],
-        iconAnchor: [5, 5],
-      });
-
-      const marker = L.marker([site.lat, site.lon], { icon, zIndexOffset: 200 });
-      marker.bindTooltip(
-        `<strong>${escapeHTML(site.name)}</strong><br/><em>${escapeHTML(site.date)}</em><br/>${escapeHTML(site.desc)}`,
-        { className: 'migration-tooltip', sticky: true, maxWidth: 260 }
-      );
-      this.siteGroup.addLayer(marker);
-    });
+    // Add sites for all currently active families
+    for (const data of Object.values(this.activeFamilies)) {
+      this._addSitesForFamily(data);
+    }
 
     if (!this.sitesVisible) this.siteGroup.remove();
 
     const btn = document.getElementById('sites-toggle');
     if (!btn) return;
 
-    // Sync button state to URL-parsed visibility
     if (!this.sitesVisible) {
       btn.textContent = 'Hidden';
       btn.setAttribute('aria-pressed', 'false');
@@ -306,35 +325,88 @@ class PIEMigrationMap {
     });
   }
 
+  _addSitesForFamily(data) {
+    if (!data.sites) return;
+    data.sites.forEach(site => {
+      const icon = L.divIcon({
+        className: '',
+        html: '<div class="site-marker-icon"></div>',
+        iconSize:   [10, 10],
+        iconAnchor: [5, 5],
+      });
+      const marker = L.marker([site.lat, site.lon], { icon, zIndexOffset: 200 });
+      marker.bindTooltip(
+        `<strong>${escapeHTML(site.name)}</strong><br/><em>${escapeHTML(site.date)}</em><br/>${escapeHTML(site.desc)}`,
+        { className: 'migration-tooltip', sticky: true, maxWidth: 260 }
+      );
+      this.siteGroup.addLayer(marker);
+    });
+  }
+
   // ── Legend ───────────────────────────────────────────────────────
 
   buildLegend() {
     const container = document.getElementById('legend-items');
-    const branches  = this.data.branches;
+    if (!container) return;
+    container.innerHTML = '';
 
-    Object.entries(branches).forEach(([key, branch]) => {
-      // <button> gives free keyboard focus, Enter/Space activation, and role=button
-      const item = document.createElement('button');
-      item.className       = 'legend-item';
-      item.dataset.branch  = key;
-      item.setAttribute('role', 'listitem');
-      item.setAttribute('aria-pressed', 'true');
-      item.setAttribute('aria-label', `${branch.name} — click to hide`);
+    for (const [familyKey, data] of Object.entries(this.activeFamilies)) {
+      const groupEl = document.createElement('div');
+      groupEl.className = 'legend-family-group';
 
-      const swatch = document.createElement('span');
-      swatch.className    = 'legend-swatch';
-      swatch.style.background = branch.color;
-      swatch.setAttribute('aria-hidden', 'true');
+      // Family header row
+      const headerRow = document.createElement('div');
+      headerRow.className = 'legend-family-header';
 
-      const label = document.createElement('span');
-      label.textContent = branch.name;
+      const headerLabel = document.createElement('span');
+      headerLabel.textContent = data.familyLabel || familyKey;
 
-      item.appendChild(swatch);
-      item.appendChild(label);
-      container.appendChild(item);
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'legend-family-close';
+      closeBtn.setAttribute('aria-label', `Deactivate ${data.familyLabel || familyKey} family`);
+      closeBtn.textContent = '×';
+      closeBtn.addEventListener('click', () => {
+        this.deactivateFamily(familyKey);
+        const cb = document.getElementById(`family-cb-${familyKey}`);
+        if (cb) cb.checked = false;
+      });
 
-      item.addEventListener('click', () => this.toggleBranch(key, item));
-    });
+      headerRow.appendChild(headerLabel);
+      headerRow.appendChild(closeBtn);
+      groupEl.appendChild(headerRow);
+
+      // Branch list
+      const branchList = document.createElement('div');
+      branchList.className = 'legend-branch-list';
+
+      Object.entries(data.branches).forEach(([key, branch]) => {
+        const item = document.createElement('button');
+        item.className       = 'legend-item';
+        item.dataset.branch  = key;
+        item.setAttribute('role', 'listitem');
+        const isVisible = this.branchVisible[key] !== false;
+        item.setAttribute('aria-pressed', String(isVisible));
+        item.setAttribute('aria-label', `${branch.name} — click to ${isVisible ? 'hide' : 'show'}`);
+        if (!isVisible) item.classList.add('muted');
+
+        const swatch = document.createElement('span');
+        swatch.className          = 'legend-swatch';
+        swatch.style.background   = branch.color;
+        swatch.setAttribute('aria-hidden', 'true');
+
+        const label = document.createElement('span');
+        label.textContent = branch.name;
+
+        item.appendChild(swatch);
+        item.appendChild(label);
+        branchList.appendChild(item);
+
+        item.addEventListener('click', () => this.toggleBranch(key, item));
+      });
+
+      groupEl.appendChild(branchList);
+      container.appendChild(groupEl);
+    }
   }
 
   toggleBranch(key, item) {
@@ -342,11 +414,83 @@ class PIEMigrationMap {
     const visible = this.branchVisible[key];
     item.classList.toggle('muted', !visible);
     item.setAttribute('aria-pressed', String(visible));
-    const branchName = this.data.branches[key].name;
+    const b = this._getBranch(key);
+    const branchName = b ? b.name : key;
     item.setAttribute('aria-label',
       `${branchName} — click to ${visible ? 'hide' : 'show'}`);
     this.renderYear(this.currentYear);
     this._pushUrlState();
+  }
+
+  _buildFamilyPanel() {
+    const panel = document.getElementById('family-panel');
+    if (!panel) return;
+
+    // Remove existing checkboxes (preserve the label span)
+    panel.querySelectorAll('.family-toggle').forEach(el => el.remove());
+
+    const familyOrder = ['pie', 'dravidian', 'sinotibetan'];
+    const familyFallbackLabels = {
+      pie:        'Proto-Indo-European',
+      dravidian:  'Dravidian',
+      sinotibetan:'Sino-Tibetan',
+    };
+
+    familyOrder.forEach(key => {
+      if (!Object.prototype.hasOwnProperty.call(DATASETS, key)) return;
+
+      const data = DATASETS[key];
+      const label = document.createElement('label');
+      label.className = 'family-toggle';
+
+      const cb = document.createElement('input');
+      cb.type    = 'checkbox';
+      cb.id      = `family-cb-${key}`;
+      cb.checked = !!this.activeFamilies[key];
+      cb.addEventListener('change', () => {
+        if (cb.checked) this.activateFamily(key);
+        else            this.deactivateFamily(key);
+      });
+
+      const name = (data && data.familyLabel) || familyFallbackLabels[key] || key;
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(' ' + name));
+      panel.appendChild(label);
+    });
+  }
+
+  _updateHeaderSubtitle() {
+    const sub = document.querySelector('#header p.subtitle');
+    if (!sub) return;
+    const families = Object.values(this.activeFamilies);
+    if (families.length === 1) {
+      sub.textContent = families[0].meta ? families[0].meta.subtitle : '';
+    } else if (families.length > 1) {
+      const names = families
+        .map(d => d.familyLabel || (d.meta && d.meta.title) || '?')
+        .join(' · ');
+      sub.textContent = 'Active: ' + names;
+    } else {
+      sub.textContent = '';
+    }
+  }
+
+  _updateTimelineRange() {
+    const { min, max } = this._calcTimelineUnion();
+    const slider = document.getElementById('time-slider');
+    if (slider) {
+      slider.min = min;
+      slider.max = max;
+    }
+    const edges = document.querySelectorAll('.tl-edge');
+    if (edges[0]) {
+      edges[0].textContent = min < 0 ? `${Math.abs(min).toLocaleString()} BCE` : `${min} CE`;
+    }
+    if (edges[1]) {
+      edges[1].textContent = max <= 0 ? `${Math.abs(max).toLocaleString()} BCE` : `${max} CE`;
+    }
+    if (this.currentYear < min) this.currentYear = min;
+    if (this.currentYear > max) this.currentYear = max;
   }
 
   // ── Timeline Controls ────────────────────────────────────────────
@@ -409,60 +553,117 @@ class PIEMigrationMap {
       this.setShapeMode(shapeModeSelect.value);
     });
 
-    // Dataset picker
-    const datasetSelect = document.getElementById('dataset-select');
-    if (datasetSelect) {
-      datasetSelect.value = this.currentDataset;
-      datasetSelect.addEventListener('change', e => this.switchDataset(e.target.value));
+  }
+
+  // ── Multi-family API ─────────────────────────────────────────────
+
+  activateFamily(key, { silent = false } = {}) {
+    if (!Object.prototype.hasOwnProperty.call(DATASETS, key)) return;
+    if (this.activeFamilies[key]) return;
+
+    const data = DATASETS[key];
+    this.activeFamilies[key] = data;
+
+    // Merge branches
+    Object.keys(data.branches).forEach(k => {
+      if (!Object.prototype.hasOwnProperty.call(this.branchVisible, k)) {
+        this.branchVisible[k] = true;
+      }
+    });
+
+    // Merge cultures
+    data.cultures.forEach(c => {
+      this.culturesById[c.id] = { culture: c, familyKey: key };
+    });
+
+    // First family sets the default year
+    if (Object.keys(this.activeFamilies).length === 1) {
+      const meta = data.meta;
+      this.currentYear = meta ? meta.defaultYear : data.startYear;
+    }
+
+    if (!silent) {
+      this._updateTimelineRange();
+      this._addSitesForFamily(data);
+      this.buildLegend();
+      this._buildFamilyPanel();
+      this.prerenderMigrationLayersForFamily(data);
+      this.renderYear(this.currentYear);
+      this.updateCitations(this.currentYear);
+      this._updateHeaderSubtitle();
+      this._pushUrlState();
     }
   }
 
-  switchDataset(key) {
-    if (!Object.prototype.hasOwnProperty.call(DATASETS, key) || key === this.currentDataset) return;
-    this.currentDataset = key;
-    this.data = DATASETS[key];
+  deactivateFamily(key) {
+    if (!this.activeFamilies[key]) return;
 
-    const meta = this.data.meta;
-    const tMin = meta ? meta.timelineMin : this.data.startYear;
-    const tMax = meta ? meta.timelineMax : this.data.endYear;
-    const tDefault = meta ? meta.defaultYear : this.data.startYear;
+    const data = this.activeFamilies[key];
 
-    // Update timeline bounds
-    const slider = document.getElementById('time-slider');
-    slider.min = tMin;
-    slider.max = tMax;
-    this.currentYear = tDefault;
+    // Remove territory layers
+    data.cultures.forEach(c => {
+      if (this.territoryLayers[c.id]) {
+        this.territoryGroup.removeLayer(this.territoryLayers[c.id].circle);
+        this.labelGroup.removeLayer(this.territoryLayers[c.id].label);
+        delete this.territoryLayers[c.id];
+      }
+      delete this.culturesById[c.id];
+    });
 
-    // Update header title/subtitle
-    if (meta) {
-      const h1 = document.querySelector('#header h1');
-      const sub = document.querySelector('#header p.subtitle');
-      if (h1) h1.textContent = meta.title;
-      if (sub) sub.textContent = meta.subtitle;
-    }
+    // Remove migration layers
+    data.migrations.forEach(mig => {
+      if (this.migrationLayers[mig.id]) {
+        this.migrationGroup.removeLayer(this.migrationLayers[mig.id].polyline);
+        this.migrationGroup.removeLayer(this.migrationLayers[mig.id].arrow);
+        delete this.migrationLayers[mig.id];
+      }
+    });
 
-    // Rebuild visible state for new branches
-    this.branchVisible = {};
-    Object.keys(this.data.branches).forEach(k => (this.branchVisible[k] = true));
+    // Remove branches
+    Object.keys(data.branches).forEach(k => delete this.branchVisible[k]);
 
-    // Rebuild fast culture lookup
-    this.culturesById = {};
-    this.data.cultures.forEach(c => (this.culturesById[c.id] = c));
+    delete this.activeFamilies[key];
 
-    // Clear and rebuild layers
-    this.territoryGroup.clearLayers();
-    this.territoryLayers = {};
-    this.migrationGroup.clearLayers();
-    this.migrationLayers = {};
-    this.siteGroup.clearLayers();
-    this.labelGroup.clearLayers();
-
+    this._updateTimelineRange();
     this.buildLegend();
-    this.initSites();
-    this.prerenderMigrationLayers();
-    this.renderYear(this.currentYear);
-    this.updateCitations(this.currentYear);
+    this._buildFamilyPanel();
+    this._updateHeaderSubtitle();
     this._pushUrlState();
+  }
+
+  _calcTimelineUnion() {
+    let min = Infinity, max = -Infinity;
+    for (const data of Object.values(this.activeFamilies)) {
+      const tMin = data.meta ? data.meta.timelineMin : data.startYear;
+      const tMax = data.meta ? data.meta.timelineMax : data.endYear;
+      if (tMin < min) min = tMin;
+      if (tMax > max) max = tMax;
+    }
+    if (!isFinite(min)) { min = -4000; max = 500; } // fallback
+    return { min, max };
+  }
+
+  _getBranch(branchKey) {
+    for (const data of Object.values(this.activeFamilies)) {
+      if (Object.prototype.hasOwnProperty.call(data.branches, branchKey)) {
+        return data.branches[branchKey];
+      }
+    }
+    return null;
+  }
+
+  _getDatasetForBranch(branchKey) {
+    for (const data of Object.values(this.activeFamilies)) {
+      if (Object.prototype.hasOwnProperty.call(data.branches, branchKey)) {
+        return data;
+      }
+    }
+    return null;
+  }
+
+  _getGeneticsForBranch(branchKey) {
+    const data = this._getDatasetForBranch(branchKey);
+    return data && data.genetics ? data.genetics[branchKey] : '';
   }
 
   updateSpeedLabel() {
@@ -473,11 +674,11 @@ class PIEMigrationMap {
   }
 
   _timelineMax() {
-    return this.data.meta ? this.data.meta.timelineMax : this.data.endYear;
+    return this._calcTimelineUnion().max;
   }
 
   _timelineMin() {
-    return this.data.meta ? this.data.meta.timelineMin : this.data.startYear;
+    return this._calcTimelineUnion().min;
   }
 
   togglePlay() {
@@ -564,21 +765,22 @@ class PIEMigrationMap {
     slider.setAttribute('aria-valuetext', yearText);
 
     // Gradient fill
-    const tMin = this.data.meta ? this.data.meta.timelineMin : this.data.startYear;
-    const tMax = this.data.meta ? this.data.meta.timelineMax : this.data.endYear;
+    const { min: tMin, max: tMax } = this._calcTimelineUnion();
     const pct = ((year - tMin) / (tMax - tMin)) * 100;
     slider.style.setProperty('--pct', pct.toFixed(2) + '%');
   }
 
   updateEventTicker(year) {
-    // Show the most recent event at or before current year
-    const events = this.data.events;
+    // Show the most recent event at or before current year, across all active families
     let best = null;
-    for (const ev of events) {
+    for (const data of Object.values(this.activeFamilies)) {
+      if (!data.events) continue;
+    for (const ev of data.events) {
       if (ev.year <= year && (best === null || ev.year > best.year)) {
         best = ev;
       }
-    }
+    } // end for ev
+    } // end for activeFamilies
 
     const ticker = document.getElementById('event-ticker');
     if (best && best.year !== this.lastTickerYear) {
@@ -606,9 +808,8 @@ class PIEMigrationMap {
   // ── Territory Circles ─────────────────────────────────────────────
 
   updateTerritories(year) {
-    const cultures = this.data.cultures;
-
-    cultures.forEach(culture => {
+    for (const familyData of Object.values(this.activeFamilies)) {
+    familyData.cultures.forEach(culture => {
       const id      = culture.id;
       const visible = this.branchVisible[culture.branch]
                    && year >= culture.startYear
@@ -626,7 +827,7 @@ class PIEMigrationMap {
         return;
       }
 
-      const branch = this.data.branches[culture.branch];
+      const branch = familyData.branches[culture.branch];
       const radiusM = state.radius * 1000; // km → metres
 
       const existingLayer = this.territoryLayers[id];
@@ -710,7 +911,8 @@ class PIEMigrationMap {
           iconAnchor: [0, 0],
         }));
       }
-    });
+    }); // end forEach culture
+    } // end for activeFamilies
   }
 
   interpolateCulture(culture, year) {
@@ -785,11 +987,13 @@ class PIEMigrationMap {
     if (!input || !datalist) return;
 
     // Populate datalist with all culture names
-    this.data.cultures.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.name;
-      datalist.appendChild(opt);
-    });
+    for (const data of Object.values(this.activeFamilies)) {
+      data.cultures.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name;
+        datalist.appendChild(opt);
+      });
+    }
 
     input.addEventListener('input', () => {
       this.searchFilter = input.value.trim().toLowerCase();
@@ -809,15 +1013,16 @@ class PIEMigrationMap {
     if (!this.searchFilter) return true;
     const term = this.searchFilter;
     if (culture.name.toLowerCase().includes(term)) return true;
-    const branch = this.data.branches[culture.branch];
+    const branch = this._getBranch(culture.branch);
     if (branch && branch.name.toLowerCase().includes(term)) return true;
     return false;
   }
 
   _applySearchHighlight() {
     Object.entries(this.territoryLayers).forEach(([id, { circle }]) => {
-      const culture = this.culturesById[id];
-      if (!culture) return;
+      const entry = this.culturesById[id];
+      if (!entry) return;
+      const culture = entry.culture;
       if (!this.searchFilter || this._cultureMatchesSearch(culture)) {
         circle.setStyle({
           fillOpacity: 0.22 * this.overlayOpacity,
@@ -853,11 +1058,13 @@ class PIEMigrationMap {
   updateCitations(year) {
     const panel = document.getElementById('citation-panel');
     if (!panel || panel.classList.contains('hidden')) return;
-    if (!this.data.sources) return;
 
-    const relevant = this.data.sources.filter(
-      s => year >= s.startYear && year <= s.endYear
-    );
+    const relevant = [];
+    for (const data of Object.values(this.activeFamilies)) {
+      if (!data.sources) continue;
+      data.sources.filter(s => year >= s.startYear && year <= s.endYear)
+        .forEach(s => relevant.push(s));
+    }
 
     const note = document.getElementById('citation-year-note');
     if (note) {
@@ -907,18 +1114,6 @@ class PIEMigrationMap {
 
   // ── Admixture bar chart ───────────────────────────────────────────
 
-  // Ancestry component display config: label, hex color
-  static get ADMIXTURE_COMPONENTS() {
-    return [
-      { key: 'EHG',   label: 'EHG',    color: '#D4843D' },
-      { key: 'CHG',   label: 'CHG',    color: '#9B59B6' },
-      { key: 'WHG',   label: 'WHG',    color: '#2E86C1' },
-      { key: 'ANF',   label: 'ANF',    color: '#1E8449' },
-      { key: 'IranN', label: 'Iran N', color: '#C0392B' },
-      { key: 'Other', label: 'Other',  color: '#5D6D7E' },
-    ];
-  }
-
   renderAdmixture(culture) {
     const container = document.getElementById('info-admixture');
     if (!container) return;
@@ -943,7 +1138,11 @@ class PIEMigrationMap {
     const legend = document.createElement('div');
     legend.className = 'admixture-legend';
 
-    PIEMigrationMap.ADMIXTURE_COMPONENTS.forEach(({ key, label: lbl, color }) => {
+    const ownerData = this._getDatasetForBranch(culture.branch);
+    const components = ownerData && ownerData.admixtureComponents
+      ? Object.entries(ownerData.admixtureComponents).map(([key, { label: lbl, color }]) => ({ key, lbl, color }))
+      : [];
+    components.forEach(({ key, lbl, color }) => {
       const pct = adm[key] || 0;
       if (pct <= 0) return;
 
@@ -970,11 +1169,11 @@ class PIEMigrationMap {
 
   // ── Migration Paths ───────────────────────────────────────────────
 
-  prerenderMigrationLayers() {
-    this.data.migrations.forEach(mig => {
-      const branch = this.data.branches[mig.branch];
+  prerenderMigrationLayersForFamily(data) {
+    data.migrations.forEach(mig => {
+      const branch = data.branches[mig.branch];
+      if (!branch) return;
 
-      // Full polyline (placeholder — coordinates updated in updateMigrations)
       const polyline = L.polyline([[0, 0]], {
         color:     branch.color,
         weight:    3.0,
@@ -984,7 +1183,6 @@ class PIEMigrationMap {
         lineCap:   'round',
       });
 
-      // Arrow marker at path tip
       const arrowIcon = L.divIcon({
         className: '',
         html:      `<div class="mig-arrow" style="color:${branch.color};border-color:${branch.color}"></div>`,
@@ -1006,7 +1204,8 @@ class PIEMigrationMap {
   }
 
   updateMigrations(year) {
-    this.data.migrations.forEach(mig => {
+    for (const _familyData of Object.values(this.activeFamilies)) {
+    _familyData.migrations.forEach(mig => {
       const { polyline, arrow } = this.migrationLayers[mig.id];
       const branchVis = this.branchVisible[mig.branch];
 
@@ -1053,7 +1252,8 @@ class PIEMigrationMap {
         iconSize:  [14, 14],
         iconAnchor:[7, 7],
       }));
-    });
+    }); // end forEach mig
+    } // end for activeFamilies
   }
 
   getMigrationProgress(mig, year) {
@@ -1094,7 +1294,8 @@ class PIEMigrationMap {
   }
 
   arrowHtml(branch, bearing) {
-    const color = this.data.branches[branch].color;
+    const b = this._getBranch(branch);
+    const color = b ? b.color : '#888888';
     return `<div style="
       width:0; height:0;
       border-left:6px solid transparent;
@@ -1109,8 +1310,8 @@ class PIEMigrationMap {
   // ── Info Panel ────────────────────────────────────────────────────
 
   showInfo(culture) {
-    const branch   = this.data.branches[culture.branch];
-    const genetics = this.data.genetics[culture.branch] || '';
+    const branch   = this._getBranch(culture.branch);
+    const genetics = this._getGeneticsForBranch(culture.branch) || '';
 
     document.getElementById('info-branch-tag').textContent   = branch.name;
     document.getElementById('info-branch-tag').style.background = branch.color + '33';
@@ -1209,12 +1410,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Dataset registry ─────────────────────────────────────────────
   DATASETS.pie = PIE_DATA;
-  if (typeof CIVILIZATIONS_DATA !== 'undefined') {
-    DATASETS.civilizations = CIVILIZATIONS_DATA;
-  }
+  if (typeof CIVILIZATIONS_DATA !== 'undefined') DATASETS.civilizations = CIVILIZATIONS_DATA;
+  if (typeof DRAVIDIAN_DATA    !== 'undefined') DATASETS.dravidian    = DRAVIDIAN_DATA;
+  if (typeof SINOTIBETAN_DATA  !== 'undefined') DATASETS.sinotibetan  = SINOTIBETAN_DATA;
 
   // ── Map ──────────────────────────────────────────────────────────
-  const app = new PIEMigrationMap(PIE_DATA);
+  const app = new PIEMigrationMap();
 
   // Close info panel
   document.getElementById('info-close').addEventListener('click', () => {
