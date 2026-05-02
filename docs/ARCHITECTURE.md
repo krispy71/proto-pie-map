@@ -136,7 +136,7 @@ The Express server acts as a hardened static file server.
 - **Multi-stage Build:** 
     - `deps` stage installs production dependencies only.
     - `runtime` stage uses a slim Alpine base, copies only necessary files, and runs as a non-root `appuser`.
-- **Healthcheck:** Built-in `wget` check ensures the container is serving requests on port 3000.
+- **Healthcheck:** Built-in `wget` check ensures the container is serving requests on port 3020.
 
 ### Deployment & CI/CD
 - **GitHub Actions:** Automatically builds the Docker image on push, runs security audits (`npm audit`), and pushes to Amazon ECR.

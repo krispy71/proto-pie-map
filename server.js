@@ -6,7 +6,7 @@ const rateLimit    = require('express-rate-limit');
 const compression  = require('compression');
 
 const app  = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3020;
 
 // ── Logging ──────────────────────────────────────────────────────────
 // IP addresses are personal data under GDPR. Anonymise by zeroing the last
