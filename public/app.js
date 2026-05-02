@@ -112,13 +112,40 @@ class PIEMigrationMap {
   // ── Initialization ───────────────────────────────────────────────
 
   init() {
-    this._parseUrlState();       // must be before initMap/buildLegend
+    this._parseUrlState();
     this.initMap();
-    this.buildLegend();
     this.initControls();
+    this.initCitations();
+
+    // Activate families from URL state (or default to PIE)
+    const familyKeys = (this._initFamilyKeys && this._initFamilyKeys.length > 0)
+      ? this._initFamilyKeys : ['pie'];
+    familyKeys.forEach(key => this.activateFamily(key, { silent: true }));
+
+    // Apply hidden branches
+    (this._initHidden || []).forEach(key => {
+      if (Object.prototype.hasOwnProperty.call(this.branchVisible, key)) {
+        this.branchVisible[key] = false;
+      }
+    });
+
+    // Apply year from URL (clamp to union range)
+    if (this._initYear !== undefined) {
+      const { min, max } = this._calcTimelineUnion();
+      if (this._initYear >= min && this._initYear <= max) {
+        this.currentYear = this._initYear;
+      }
+    }
+
+    this._updateTimelineRange();
     this.initSites();
     this.initSearch();
-    this.initCitations();
+    this.buildLegend();
+    this._buildFamilyPanel();
+    this._updateHeaderSubtitle();
+    for (const [key, data] of Object.entries(this.activeFamilies)) {
+      this.prerenderMigrationLayersForFamily(data);
+    }
     this.renderYear(this.currentYear);
     this.updateCitations(this.currentYear);
   }
@@ -205,43 +232,57 @@ class PIEMigrationMap {
     if (!hash) return;
     const params = new URLSearchParams(hash);
 
-    const tMin = this.data.meta ? this.data.meta.timelineMin : this.data.startYear;
-    const tMax = this.data.meta ? this.data.meta.timelineMax : this.data.endYear;
-    const year = parseInt(params.get('year'), 10);
-    if (!isNaN(year) && year >= tMin && year <= tMax) {
-      this.currentYear = year;
+    // Legacy civilizations standalone mode
+    const legacyDataset = params.get('dataset');
+    if (legacyDataset === 'civilizations') {
+      this._initFamilyKeys = ['civilizations'];
+      return;
     }
 
+    // Families param: "families=pie,dravidian"
+    const familiesParam = params.get('families');
+    if (familiesParam) {
+      this._initFamilyKeys = familiesParam.split(',').filter(k =>
+        Object.prototype.hasOwnProperty.call(DATASETS, k)
+      );
+    }
+
+    // Year (clamped after families are activated)
+    const rawYear = parseInt(params.get('year'), 10);
+    if (!isNaN(rawYear)) this._initYear = rawYear;
+
+    // Tile style
     const style = params.get('style');
     if (style && Object.prototype.hasOwnProperty.call(this.TILE_STYLES, style)) {
       this._initStyle = style;
     }
 
+    // Hidden branches
     const hidden = params.get('hidden');
-    if (hidden) {
-      hidden.split(',').forEach(key => {
-        if (key && Object.prototype.hasOwnProperty.call(this.branchVisible, key)) {
-          this.branchVisible[key] = false;
-        }
-      });
-    }
+    if (hidden) this._initHidden = hidden.split(',').filter(Boolean);
 
-    if (params.get('sites') === '0') {
-      this.sitesVisible = false;
-    }
+    // Sites visibility
+    if (params.get('sites') === '0') this.sitesVisible = false;
   }
 
   _pushUrlState() {
+    const params = new URLSearchParams();
+    params.set('year', Math.round(this.currentYear));
+
+    const activeKeys = Object.keys(this.activeFamilies);
+    if (activeKeys.length === 1 && activeKeys[0] === 'pie') {
+      // default — omit families param
+    } else if (activeKeys.length > 0) {
+      params.set('families', activeKeys.join(','));
+    }
+
     const hidden = Object.entries(this.branchVisible)
       .filter(([, v]) => !v)
       .map(([k]) => k)
       .join(',');
-    const params = new URLSearchParams();
-    params.set('year', Math.round(this.currentYear));
-    const familyKeys = Object.keys(this.activeFamilies);
-    if (familyKeys.length > 0) params.set('families', familyKeys.join(','));
     if (hidden) params.set('hidden', hidden);
     if (!this.sitesVisible) params.set('sites', '0');
+
     history.replaceState(null, '', '#' + params.toString());
   }
 
