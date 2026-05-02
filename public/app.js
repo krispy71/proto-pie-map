@@ -302,31 +302,66 @@ class PIEMigrationMap {
 
   buildLegend() {
     const container = document.getElementById('legend-items');
-    const branches  = this.data.branches;
+    if (!container) return;
+    container.innerHTML = '';
 
-    Object.entries(branches).forEach(([key, branch]) => {
-      // <button> gives free keyboard focus, Enter/Space activation, and role=button
-      const item = document.createElement('button');
-      item.className       = 'legend-item';
-      item.dataset.branch  = key;
-      item.setAttribute('role', 'listitem');
-      item.setAttribute('aria-pressed', 'true');
-      item.setAttribute('aria-label', `${branch.name} — click to hide`);
+    for (const [familyKey, data] of Object.entries(this.activeFamilies)) {
+      const groupEl = document.createElement('div');
+      groupEl.className = 'legend-family-group';
 
-      const swatch = document.createElement('span');
-      swatch.className    = 'legend-swatch';
-      swatch.style.background = branch.color;
-      swatch.setAttribute('aria-hidden', 'true');
+      // Family header row
+      const headerRow = document.createElement('div');
+      headerRow.className = 'legend-family-header';
 
-      const label = document.createElement('span');
-      label.textContent = branch.name;
+      const headerLabel = document.createElement('span');
+      headerLabel.textContent = data.familyLabel || familyKey;
 
-      item.appendChild(swatch);
-      item.appendChild(label);
-      container.appendChild(item);
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'legend-family-close';
+      closeBtn.setAttribute('aria-label', `Deactivate ${data.familyLabel || familyKey} family`);
+      closeBtn.textContent = '×';
+      closeBtn.addEventListener('click', () => {
+        this.deactivateFamily(familyKey);
+        const cb = document.getElementById(`family-cb-${familyKey}`);
+        if (cb) cb.checked = false;
+      });
 
-      item.addEventListener('click', () => this.toggleBranch(key, item));
-    });
+      headerRow.appendChild(headerLabel);
+      headerRow.appendChild(closeBtn);
+      groupEl.appendChild(headerRow);
+
+      // Branch list
+      const branchList = document.createElement('div');
+      branchList.className = 'legend-branch-list';
+
+      Object.entries(data.branches).forEach(([key, branch]) => {
+        const item = document.createElement('button');
+        item.className       = 'legend-item';
+        item.dataset.branch  = key;
+        item.setAttribute('role', 'listitem');
+        const isVisible = this.branchVisible[key] !== false;
+        item.setAttribute('aria-pressed', String(isVisible));
+        item.setAttribute('aria-label', `${branch.name} — click to ${isVisible ? 'hide' : 'show'}`);
+        if (!isVisible) item.classList.add('muted');
+
+        const swatch = document.createElement('span');
+        swatch.className          = 'legend-swatch';
+        swatch.style.background   = branch.color;
+        swatch.setAttribute('aria-hidden', 'true');
+
+        const label = document.createElement('span');
+        label.textContent = branch.name;
+
+        item.appendChild(swatch);
+        item.appendChild(label);
+        branchList.appendChild(item);
+
+        item.addEventListener('click', () => this.toggleBranch(key, item));
+      });
+
+      groupEl.appendChild(branchList);
+      container.appendChild(groupEl);
+    }
   }
 
   toggleBranch(key, item) {
@@ -334,7 +369,8 @@ class PIEMigrationMap {
     const visible = this.branchVisible[key];
     item.classList.toggle('muted', !visible);
     item.setAttribute('aria-pressed', String(visible));
-    const branchName = this.data.branches[key].name;
+    const b = this._getBranch(key);
+    const branchName = b ? b.name : key;
     item.setAttribute('aria-label',
       `${branchName} — click to ${visible ? 'hide' : 'show'}`);
     this.renderYear(this.currentYear);
@@ -619,14 +655,16 @@ class PIEMigrationMap {
   }
 
   updateEventTicker(year) {
-    // Show the most recent event at or before current year
-    const events = this.data.events;
+    // Show the most recent event at or before current year, across all active families
     let best = null;
-    for (const ev of events) {
+    for (const data of Object.values(this.activeFamilies)) {
+      if (!data.events) continue;
+    for (const ev of data.events) {
       if (ev.year <= year && (best === null || ev.year > best.year)) {
         best = ev;
       }
-    }
+    } // end for ev
+    } // end for activeFamilies
 
     const ticker = document.getElementById('event-ticker');
     if (best && best.year !== this.lastTickerYear) {
@@ -833,11 +871,13 @@ class PIEMigrationMap {
     if (!input || !datalist) return;
 
     // Populate datalist with all culture names
-    this.data.cultures.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.name;
-      datalist.appendChild(opt);
-    });
+    for (const data of Object.values(this.activeFamilies)) {
+      data.cultures.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name;
+        datalist.appendChild(opt);
+      });
+    }
 
     input.addEventListener('input', () => {
       this.searchFilter = input.value.trim().toLowerCase();
@@ -857,15 +897,16 @@ class PIEMigrationMap {
     if (!this.searchFilter) return true;
     const term = this.searchFilter;
     if (culture.name.toLowerCase().includes(term)) return true;
-    const branch = this.data.branches[culture.branch];
+    const branch = this._getBranch(culture.branch);
     if (branch && branch.name.toLowerCase().includes(term)) return true;
     return false;
   }
 
   _applySearchHighlight() {
     Object.entries(this.territoryLayers).forEach(([id, { circle }]) => {
-      const culture = this.culturesById[id];
-      if (!culture) return;
+      const entry = this.culturesById[id];
+      if (!entry) return;
+      const culture = entry.culture;
       if (!this.searchFilter || this._cultureMatchesSearch(culture)) {
         circle.setStyle({
           fillOpacity: 0.22 * this.overlayOpacity,
@@ -901,11 +942,13 @@ class PIEMigrationMap {
   updateCitations(year) {
     const panel = document.getElementById('citation-panel');
     if (!panel || panel.classList.contains('hidden')) return;
-    if (!this.data.sources) return;
 
-    const relevant = this.data.sources.filter(
-      s => year >= s.startYear && year <= s.endYear
-    );
+    const relevant = [];
+    for (const data of Object.values(this.activeFamilies)) {
+      if (!data.sources) continue;
+      data.sources.filter(s => year >= s.startYear && year <= s.endYear)
+        .forEach(s => relevant.push(s));
+    }
 
     const note = document.getElementById('citation-year-note');
     if (note) {
