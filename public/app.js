@@ -119,7 +119,6 @@ class PIEMigrationMap {
     this.initSites();
     this.initSearch();
     this.initCitations();
-    this.prerenderMigrationLayers();
     this.renderYear(this.currentYear);
     this.updateCitations(this.currentYear);
   }
