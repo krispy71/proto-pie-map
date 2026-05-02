@@ -14,15 +14,11 @@ const DATASETS = {};
 
 class PIEMigrationMap {
   constructor(data) {
-    // Resolve initial dataset from URL state before anything else
-    const _initDataset = new URLSearchParams(location.hash.slice(1)).get('dataset') || 'pie';
-    this.currentDataset = Object.prototype.hasOwnProperty.call(DATASETS, _initDataset)
-      ? _initDataset : 'pie';
-    this.data = DATASETS[this.currentDataset] || data;
+    // Multi-family state (replaces single-dataset pattern)
+    this.activeFamilies = {};   // { familyKey → dataObject }
 
-    // Timeline state
-    const _meta = this.data.meta;
-    this.currentYear  = _meta ? _meta.defaultYear : this.data.startYear;
+    // Timeline state — default year set when first family activates
+    this.currentYear  = -3500;
     this.playing      = false;
     this.speedIndex   = 2;   // index into SPEEDS array
     this.SPEEDS       = [10, 25, 50, 100, 200, 400]; // years/second
@@ -84,9 +80,8 @@ class PIEMigrationMap {
     // Search filter (empty string = no filter)
     this.searchFilter = '';
 
-    // Fast lookup for cultures by id
+    // Fast lookup: { id → { culture, familyKey } }
     this.culturesById = {};
-    data.cultures.forEach(c => (this.culturesById[c.id] = c));
 
     // Layer state: { id → { circle, label, mode } }
     this.territoryLayers  = {};
@@ -94,8 +89,7 @@ class PIEMigrationMap {
     this.migrationLayers  = {};
 
     // Legend filter (branch → visible boolean)
-    this.branchVisible = {};
-    Object.keys(data.branches).forEach(k => (this.branchVisible[k] = true));
+    this.branchVisible = {};   // populated by activateFamily
 
     // Closest upcoming event (for ticker)
     this.lastTickerYear = null;
@@ -245,9 +239,8 @@ class PIEMigrationMap {
       .join(',');
     const params = new URLSearchParams();
     params.set('year', Math.round(this.currentYear));
-    if (this.currentDataset && this.currentDataset !== 'pie') {
-      params.set('dataset', this.currentDataset);
-    }
+    const familyKeys = Object.keys(this.activeFamilies);
+    if (familyKeys.length > 0) params.set('families', familyKeys.join(','));
     if (hidden) params.set('hidden', hidden);
     if (!this.sitesVisible) params.set('sites', '0');
     history.replaceState(null, '', '#' + params.toString());
@@ -409,60 +402,117 @@ class PIEMigrationMap {
       this.setShapeMode(shapeModeSelect.value);
     });
 
-    // Dataset picker
+    // Dataset picker (legacy — removed in multi-family refactor)
     const datasetSelect = document.getElementById('dataset-select');
     if (datasetSelect) {
-      datasetSelect.value = this.currentDataset;
-      datasetSelect.addEventListener('change', e => this.switchDataset(e.target.value));
+      datasetSelect.addEventListener('change', e => this.activateFamily(e.target.value));
     }
   }
 
-  switchDataset(key) {
-    if (!Object.prototype.hasOwnProperty.call(DATASETS, key) || key === this.currentDataset) return;
-    this.currentDataset = key;
-    this.data = DATASETS[key];
+  // ── Multi-family API ─────────────────────────────────────────────
 
-    const meta = this.data.meta;
-    const tMin = meta ? meta.timelineMin : this.data.startYear;
-    const tMax = meta ? meta.timelineMax : this.data.endYear;
-    const tDefault = meta ? meta.defaultYear : this.data.startYear;
+  activateFamily(key, { silent = false } = {}) {
+    if (!Object.prototype.hasOwnProperty.call(DATASETS, key)) return;
+    if (this.activeFamilies[key]) return;
 
-    // Update timeline bounds
-    const slider = document.getElementById('time-slider');
-    slider.min = tMin;
-    slider.max = tMax;
-    this.currentYear = tDefault;
+    const data = DATASETS[key];
+    this.activeFamilies[key] = data;
 
-    // Update header title/subtitle
-    if (meta) {
-      const h1 = document.querySelector('#header h1');
-      const sub = document.querySelector('#header p.subtitle');
-      if (h1) h1.textContent = meta.title;
-      if (sub) sub.textContent = meta.subtitle;
+    // Merge branches
+    Object.keys(data.branches).forEach(k => {
+      if (!Object.prototype.hasOwnProperty.call(this.branchVisible, k)) {
+        this.branchVisible[k] = true;
+      }
+    });
+
+    // Merge cultures
+    data.cultures.forEach(c => {
+      this.culturesById[c.id] = { culture: c, familyKey: key };
+    });
+
+    // First family sets the default year
+    if (Object.keys(this.activeFamilies).length === 1) {
+      const meta = data.meta;
+      this.currentYear = meta ? meta.defaultYear : data.startYear;
     }
 
-    // Rebuild visible state for new branches
-    this.branchVisible = {};
-    Object.keys(this.data.branches).forEach(k => (this.branchVisible[k] = true));
+    if (!silent) {
+      this._updateTimelineRange();
+      this._addSitesForFamily(data);
+      this.buildLegend();
+      this._buildFamilyPanel();
+      this.prerenderMigrationLayersForFamily(data);
+      this.renderYear(this.currentYear);
+      this.updateCitations(this.currentYear);
+      this._updateHeaderSubtitle();
+      this._pushUrlState();
+    }
+  }
 
-    // Rebuild fast culture lookup
-    this.culturesById = {};
-    this.data.cultures.forEach(c => (this.culturesById[c.id] = c));
+  deactivateFamily(key) {
+    if (!this.activeFamilies[key]) return;
 
-    // Clear and rebuild layers
-    this.territoryGroup.clearLayers();
-    this.territoryLayers = {};
-    this.migrationGroup.clearLayers();
-    this.migrationLayers = {};
-    this.siteGroup.clearLayers();
-    this.labelGroup.clearLayers();
+    const data = this.activeFamilies[key];
 
+    // Remove territory layers
+    data.cultures.forEach(c => {
+      if (this.territoryLayers[c.id]) {
+        this.territoryGroup.removeLayer(this.territoryLayers[c.id].circle);
+        this.labelGroup.removeLayer(this.territoryLayers[c.id].label);
+        delete this.territoryLayers[c.id];
+      }
+      delete this.culturesById[c.id];
+    });
+
+    // Remove migration layers
+    data.migrations.forEach(mig => {
+      if (this.migrationLayers[mig.id]) {
+        this.migrationGroup.removeLayer(this.migrationLayers[mig.id].polyline);
+        this.migrationGroup.removeLayer(this.migrationLayers[mig.id].arrow);
+        delete this.migrationLayers[mig.id];
+      }
+    });
+
+    // Remove branches
+    Object.keys(data.branches).forEach(k => delete this.branchVisible[k]);
+
+    delete this.activeFamilies[key];
+
+    this._updateTimelineRange();
     this.buildLegend();
-    this.initSites();
-    this.prerenderMigrationLayers();
-    this.renderYear(this.currentYear);
-    this.updateCitations(this.currentYear);
+    this._buildFamilyPanel();
+    this._updateHeaderSubtitle();
     this._pushUrlState();
+  }
+
+  _calcTimelineUnion() {
+    let min = Infinity, max = -Infinity;
+    for (const data of Object.values(this.activeFamilies)) {
+      const tMin = data.meta ? data.meta.timelineMin : data.startYear;
+      const tMax = data.meta ? data.meta.timelineMax : data.endYear;
+      if (tMin < min) min = tMin;
+      if (tMax > max) max = tMax;
+    }
+    if (!isFinite(min)) { min = -4000; max = 500; } // fallback
+    return { min, max };
+  }
+
+  _getBranch(branchKey) {
+    for (const data of Object.values(this.activeFamilies)) {
+      if (Object.prototype.hasOwnProperty.call(data.branches, branchKey)) {
+        return data.branches[branchKey];
+      }
+    }
+    return null;
+  }
+
+  _getDatasetForBranch(branchKey) {
+    for (const data of Object.values(this.activeFamilies)) {
+      if (Object.prototype.hasOwnProperty.call(data.branches, branchKey)) {
+        return data;
+      }
+    }
+    return null;
   }
 
   updateSpeedLabel() {
@@ -473,11 +523,11 @@ class PIEMigrationMap {
   }
 
   _timelineMax() {
-    return this.data.meta ? this.data.meta.timelineMax : this.data.endYear;
+    return this._calcTimelineUnion().max;
   }
 
   _timelineMin() {
-    return this.data.meta ? this.data.meta.timelineMin : this.data.startYear;
+    return this._calcTimelineUnion().min;
   }
 
   togglePlay() {
@@ -564,8 +614,7 @@ class PIEMigrationMap {
     slider.setAttribute('aria-valuetext', yearText);
 
     // Gradient fill
-    const tMin = this.data.meta ? this.data.meta.timelineMin : this.data.startYear;
-    const tMax = this.data.meta ? this.data.meta.timelineMax : this.data.endYear;
+    const { min: tMin, max: tMax } = this._calcTimelineUnion();
     const pct = ((year - tMin) / (tMax - tMin)) * 100;
     slider.style.setProperty('--pct', pct.toFixed(2) + '%');
   }
