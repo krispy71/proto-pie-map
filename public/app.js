@@ -13,7 +13,7 @@ function escapeHTML(str) {
 const DATASETS = {};
 
 class PIEMigrationMap {
-  constructor(data) {
+  constructor() {
     // Multi-family state (replaces single-dataset pattern)
     this.activeFamilies = {};   // { familyKey → dataObject }
 
@@ -1410,12 +1410,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Dataset registry ─────────────────────────────────────────────
   DATASETS.pie = PIE_DATA;
-  if (typeof CIVILIZATIONS_DATA !== 'undefined') {
-    DATASETS.civilizations = CIVILIZATIONS_DATA;
-  }
+  if (typeof CIVILIZATIONS_DATA !== 'undefined') DATASETS.civilizations = CIVILIZATIONS_DATA;
+  if (typeof DRAVIDIAN_DATA    !== 'undefined') DATASETS.dravidian    = DRAVIDIAN_DATA;
+  if (typeof SINOTIBETAN_DATA  !== 'undefined') DATASETS.sinotibetan  = SINOTIBETAN_DATA;
 
   // ── Map ──────────────────────────────────────────────────────────
-  const app = new PIEMigrationMap(PIE_DATA);
+  const app = new PIEMigrationMap();
 
   // Close info panel
   document.getElementById('info-close').addEventListener('click', () => {
