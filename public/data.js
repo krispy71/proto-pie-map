@@ -16,6 +16,26 @@ const PIE_DATA = {
   startYear: -4000,
   endYear:    500,
 
+  familyKey: 'pie',
+  familyLabel: 'Proto-Indo-European',
+
+  admixtureComponents: {
+    EHG:   { label: 'EHG',    color: '#D4843D' },
+    CHG:   { label: 'CHG',    color: '#9B59B6' },
+    WHG:   { label: 'WHG',    color: '#2E86C1' },
+    ANF:   { label: 'ANF',    color: '#1E8449' },
+    IranN: { label: 'Iran N', color: '#C0392B' },
+    Other: { label: 'Other',  color: '#5D6D7E' },
+  },
+
+  meta: {
+    timelineMin: -4000,
+    timelineMax:  500,
+    defaultYear: -3500,
+    title:    'PIE Migrations',
+    subtitle: 'Proto-Indo-European language dispersal & genetic migrations, 4000 BCE – 500 CE',
+  },
+
   // ── Language branches ────────────────────────────────────────────
   // Each entry: { name, color (fill), textColor }
   branches: {
@@ -64,11 +84,13 @@ const PIE_DATA = {
   // ── Cultures / peoples ──────────────────────────────────────────
   // Each culture: {
   //   id, name, branch, description, startYear, endYear,
-  //   phases: [{ year, center: [lat, lon], radius (km), rx? (km), ry? (km) }]
+  //   phases: [{ year, center: [lat, lon], radius (km), rx? (km), ry? (km) }],
+  //   admixture?: { EHG?, CHG?, WHG?, ANF?, IranN?, Other? }  // proportions summing to 1
   // }
   // radius: used in circle mode (and as fallback in ellipse mode when rx/ry absent)
   // rx: east-west semi-axis in km (ellipse mode only)
   // ry: north-south semi-axis in km (ellipse mode only)
+  // admixture: approximate ancestry proportions from published aDNA studies
   // Phases are linearly interpolated by app.js between keyframes.
   cultures: [
 
@@ -92,6 +114,7 @@ const PIE_DATA = {
         { year: -2700, center: [49.0,  0.5], radius: 300, rx: 330, ry: 260 },
         { year: -2600, center: [49.0,  0.0], radius: 150, rx: 165, ry: 130 },
       ],
+      admixture: { WHG: 0.95, Other: 0.05 },
     },
 
     {
@@ -109,6 +132,7 @@ const PIE_DATA = {
         { year: -2600, center: [48.5,  7.0], radius:  520, rx:  640, ry: 360 },
         { year: -2500, center: [48.5,  6.5], radius:  280, rx:  340, ry: 195 },
       ],
+      admixture: { ANF: 0.88, WHG: 0.08, IranN: 0.04 },
     },
 
     {
@@ -126,6 +150,7 @@ const PIE_DATA = {
         { year: -1700, center: [34.0, 52.5], radius: 420 },
         { year: -1500, center: [34.0, 53.0], radius: 280 },
       ],
+      admixture: { CHG: 0.55, IranN: 0.40, Other: 0.05 },
     },
 
     // ── PIE Homeland ──────────────────────────────────────────────
@@ -145,6 +170,7 @@ const PIE_DATA = {
         { year: -2200, center: [47.5, 46.0], radius:  680, rx:  880, ry: 310 },
         { year: -2100, center: [47.5, 45.0], radius:  420, rx:  540, ry: 220 },
       ],
+      admixture: { EHG: 0.50, CHG: 0.47, WHG: 0.02, ANF: 0.01 },
     },
 
     {
@@ -159,6 +185,7 @@ const PIE_DATA = {
         { year: -4000, center: [48.0, 38.0], radius: 500 },
         { year: -3500, center: [47.5, 40.0], radius: 450 },
       ],
+      admixture: { EHG: 0.62, CHG: 0.30, WHG: 0.08 },
     },
 
     // ── Anatolian Branch ──────────────────────────────────────────
@@ -179,6 +206,7 @@ const PIE_DATA = {
         { year: -1180, center: [39.0, 34.5], radius: 480 },
         { year: -1000, center: [39.0, 33.0], radius: 200 },
       ],
+      admixture: { ANF: 0.55, CHG: 0.30, EHG: 0.05, IranN: 0.05, Other: 0.05 },
     },
 
     // ── Tocharian Branch ──────────────────────────────────────────
@@ -196,6 +224,7 @@ const PIE_DATA = {
         { year: -2700, center: [52.0, 90.5], radius: 400 },
         { year: -2400, center: [51.5, 89.0], radius: 320 },
       ],
+      admixture: { EHG: 0.50, CHG: 0.48, WHG: 0.01, ANF: 0.01 },
     },
 
     {
@@ -214,6 +243,7 @@ const PIE_DATA = {
         { year:  500,  center: [41.0, 84.5], radius: 370 },
         { year:  900,  center: [41.0, 84.0], radius: 220 },
       ],
+      admixture: { EHG: 0.46, CHG: 0.42, ANF: 0.07, WHG: 0.05 },
     },
 
     // ── European Branches (via Corded Ware / Bell Beaker) ─────────
@@ -232,6 +262,7 @@ const PIE_DATA = {
         { year: -2400, center: [55.0, 13.0], radius: 920, rx: 1200, ry: 550 },
         { year: -2350, center: [55.0, 14.0], radius: 850, rx: 1100, ry: 510 },
       ],
+      admixture: { EHG: 0.38, CHG: 0.37, WHG: 0.22, ANF: 0.03 },
     },
 
     {
@@ -250,6 +281,7 @@ const PIE_DATA = {
         { year: -1800, center: [52.0, -3.0], radius: 750 },
         { year: -1700, center: [53.0, -2.0], radius: 620 },
       ],
+      admixture: { EHG: 0.22, CHG: 0.23, WHG: 0.18, ANF: 0.37 },
     },
 
     {
@@ -268,6 +300,7 @@ const PIE_DATA = {
         { year:  -400, center: [38.5, 30.0], radius: 180 },
         { year:  -300, center: [38.5, 29.5], radius:  80 },
       ],
+      admixture: { ANF: 0.52, CHG: 0.28, EHG: 0.08, IranN: 0.07, Other: 0.05 },
     },
 
     // ── Hellenic Branch ───────────────────────────────────────────
@@ -287,6 +320,7 @@ const PIE_DATA = {
         { year: -1200, center: [37.5, 22.5], radius: 360 },
         { year: -1100, center: [37.5, 22.0], radius: 250 },
       ],
+      admixture: { ANF: 0.67, WHG: 0.16, CHG: 0.09, EHG: 0.08 },
     },
 
     {
@@ -306,6 +340,7 @@ const PIE_DATA = {
         { year:  200,  center: [38.5, 27.0], radius: 650 },
         { year:  500,  center: [39.0, 28.0], radius: 500 },
       ],
+      admixture: { ANF: 0.72, WHG: 0.13, CHG: 0.08, EHG: 0.07 },
     },
 
     // ── Italic Branch ─────────────────────────────────────────────
@@ -330,6 +365,7 @@ const PIE_DATA = {
         { year:  400,  center: [41.5, 15.0], radius: 1200 },
         { year:  500,  center: [41.5, 14.0], radius: 900 },
       ],
+      admixture: { ANF: 0.56, EHG: 0.15, CHG: 0.14, WHG: 0.10, Other: 0.05 },
     },
 
     // ── Celtic Branch ─────────────────────────────────────────────
@@ -349,6 +385,7 @@ const PIE_DATA = {
         { year: -500,  center: [47.0, 9.5],  radius: 580 },
         { year: -450,  center: [47.0, 9.0],  radius: 560 },
       ],
+      admixture: { ANF: 0.39, EHG: 0.22, CHG: 0.21, WHG: 0.18 },
     },
 
     {
@@ -367,6 +404,7 @@ const PIE_DATA = {
         { year:  200,  center: [53.0, -4.5], radius: 550 },
         { year:  500,  center: [53.5, -5.0], radius: 420 },
       ],
+      admixture: { ANF: 0.40, EHG: 0.20, CHG: 0.20, WHG: 0.20 },
     },
 
     // ── Germanic Branch ───────────────────────────────────────────
@@ -384,6 +422,7 @@ const PIE_DATA = {
         { year: -200, center: [53.0, 10.5], radius: 370 },
         { year:    0, center: [53.0, 11.0], radius: 390 },
       ],
+      admixture: { EHG: 0.32, CHG: 0.30, WHG: 0.28, ANF: 0.10 },
     },
 
     {
@@ -403,6 +442,7 @@ const PIE_DATA = {
         { year:  400,  center: [50.0, 12.0], radius: 900 },
         { year:  500,  center: [49.0, 11.0], radius: 1000 },
       ],
+      admixture: { EHG: 0.28, CHG: 0.26, WHG: 0.26, ANF: 0.20 },
     },
 
     // ── Baltic-Slavic Branch ──────────────────────────────────────
@@ -422,6 +462,7 @@ const PIE_DATA = {
         { year:  300,  center: [56.0, 24.0], radius: 350 },
         { year:  500,  center: [55.5, 24.0], radius: 330 },
       ],
+      admixture: { EHG: 0.40, CHG: 0.35, WHG: 0.20, ANF: 0.05 },
     },
 
     {
@@ -439,6 +480,7 @@ const PIE_DATA = {
         { year:  350,  center: [51.5, 30.0], radius: 530 },
         { year:  500,  center: [52.0, 32.0], radius: 750 },
       ],
+      admixture: { EHG: 0.35, CHG: 0.32, WHG: 0.20, ANF: 0.13 },
     },
 
     // ── Indo-Iranian Branch ───────────────────────────────────────
@@ -456,6 +498,7 @@ const PIE_DATA = {
         { year: -1800, center: [51.5, 61.5], radius: 270 },
         { year: -1700, center: [51.5, 62.0], radius: 240 },
       ],
+      admixture: { EHG: 0.44, CHG: 0.43, WHG: 0.05, ANF: 0.08 },
     },
 
     {
@@ -474,6 +517,7 @@ const PIE_DATA = {
         { year: -1000, center: [47.5, 66.0], radius: 720, rx:  980, ry: 450 },
         { year:  -900, center: [47.0, 65.0], radius: 600, rx:  820, ry: 380 },
       ],
+      admixture: { EHG: 0.43, CHG: 0.40, WHG: 0.05, ANF: 0.12 },
     },
 
     {
@@ -491,6 +535,7 @@ const PIE_DATA = {
         { year: -1500, center: [37.0, 63.5], radius: 280 },
         { year: -1400, center: [37.0, 64.0], radius: 160 },
       ],
+      admixture: { IranN: 0.50, CHG: 0.28, ANF: 0.17, Other: 0.05 },
     },
 
     {
@@ -511,6 +556,7 @@ const PIE_DATA = {
         { year:  300,  center: [20.0, 80.0], radius: 1300 },
         { year:  500,  center: [19.0, 80.0], radius: 1350 },
       ],
+      admixture: { IranN: 0.28, ANF: 0.22, EHG: 0.20, CHG: 0.18, Other: 0.12 },
     },
 
     {
@@ -532,6 +578,7 @@ const PIE_DATA = {
         { year:   300, center: [34.0, 52.5], radius: 900 },
         { year:   500, center: [34.0, 52.5], radius: 880 },
       ],
+      admixture: { CHG: 0.38, IranN: 0.28, EHG: 0.18, ANF: 0.10, Other: 0.06 },
     },
 
     {
@@ -551,6 +598,7 @@ const PIE_DATA = {
         { year:   200, center: [47.5, 42.0], radius: 550, rx:  760, ry: 330 },
         { year:   350, center: [47.0, 43.0], radius: 400, rx:  560, ry: 280 },
       ],
+      admixture: { EHG: 0.38, CHG: 0.35, WHG: 0.10, ANF: 0.12, Other: 0.05 },
     },
 
     // ── Armenian Branch ───────────────────────────────────────────
@@ -571,6 +619,7 @@ const PIE_DATA = {
         { year:   300, center: [40.0, 44.8], radius: 270 },
         { year:   500, center: [40.0, 44.5], radius: 250 },
       ],
+      admixture: { CHG: 0.48, ANF: 0.28, EHG: 0.12, IranN: 0.09, Other: 0.03 },
     },
 
     // ── Albanian Branch ───────────────────────────────────────────
@@ -591,6 +640,7 @@ const PIE_DATA = {
         { year:   250, center: [41.0, 20.0], radius: 240 },
         { year:   500, center: [41.0, 20.0], radius: 210 },
       ],
+      admixture: { ANF: 0.45, EHG: 0.20, CHG: 0.20, WHG: 0.15 },
     },
 
     // ── Mitanni (Indo-Aryan elite in Syria) ───────────────────────
@@ -1027,6 +1077,89 @@ const PIE_DATA = {
       id: 'gobekli_tepe', name: 'Göbekli Tepe', lat: 37.22, lon: 38.92,
       date: '~9600 BCE',
       desc: 'World\'s oldest known monumental structure — hunter-gatherer temple complex in southeastern Anatolia, predating agriculture.',
+    },
+  ],
+
+  // ── Source citations ──────────────────────────────────────────────
+  // Each source: { id, short, full, doi?, startYear, endYear }
+  // startYear/endYear define the timeline window where this source is most relevant.
+  sources: [
+    {
+      id: 'anthony_2007',
+      short: 'Anthony 2007',
+      full: 'Anthony, D.W. The Horse, the Wheel, and Language: How Bronze-Age Riders from the Eurasian Steppes Shaped the Modern World. Princeton University Press.',
+      startYear: -4500,
+      endYear:   -1000,
+    },
+    {
+      id: 'mallory_2006',
+      short: 'Mallory & Adams 2006',
+      full: 'Mallory, J.P. & Adams, D.Q. The Oxford Introduction to Proto-Indo-European and the Proto-Indo-European World. Oxford University Press.',
+      startYear: -4500,
+      endYear:    500,
+    },
+    {
+      id: 'haak_2015',
+      short: 'Haak et al. 2015',
+      full: 'Haak, W. et al. Massive migration from the steppe was a source for Indo-European languages in Europe. Nature 522:207–211.',
+      doi: 'https://doi.org/10.1038/nature14317',
+      startYear: -3500,
+      endYear:   -1500,
+    },
+    {
+      id: 'mathieson_2015',
+      short: 'Mathieson et al. 2015',
+      full: 'Mathieson, I. et al. Genome-wide patterns of selection in 230 ancient Eurasians. Nature 528:499–503.',
+      doi: 'https://doi.org/10.1038/nature16152',
+      startYear: -3500,
+      endYear:   -1000,
+    },
+    {
+      id: 'olalde_2018',
+      short: 'Olalde et al. 2018',
+      full: 'Olalde, I. et al. The Beaker phenomenon and the genomic transformation of northwest Europe. Science 360:1066–1069.',
+      doi: 'https://doi.org/10.1126/science.aar2685',
+      startYear: -2800,
+      endYear:   -1700,
+    },
+    {
+      id: 'damgaard_2018',
+      short: 'Damgaard et al. 2018',
+      full: 'Damgaard, P.B. et al. 137 ancient human genomes from across the Eurasian steppes. Nature 557:369–374.',
+      doi: 'https://doi.org/10.1038/s41586-018-0094-2',
+      startYear: -3000,
+      endYear:    500,
+    },
+    {
+      id: 'narasimhan_2019',
+      short: 'Narasimhan et al. 2019',
+      full: 'Narasimhan, V.M. et al. The formation of human populations in South and Central Asia. Science 365:eaat7487.',
+      doi: 'https://doi.org/10.1126/science.aat7487',
+      startYear: -2300,
+      endYear:    -500,
+    },
+    {
+      id: 'librado_2021',
+      short: 'Librado et al. 2021',
+      full: 'Librado, P. et al. The origins and spread of domestic horses from the Western Eurasian steppes. Nature 598:634–640.',
+      doi: 'https://doi.org/10.1038/s41586-021-04018-9',
+      startYear: -3000,
+      endYear:   -1000,
+    },
+    {
+      id: 'lazaridis_2022',
+      short: 'Lazaridis et al. 2022',
+      full: 'Lazaridis, I. et al. Ancient DNA from Mesopotamia suggests distinct pre-Pottery Neolithic ancestors for Anatolia and the Levant. Science 375:eabi8675.',
+      doi: 'https://doi.org/10.1126/science.abm4247',
+      startYear: -4000,
+      endYear:   -1000,
+    },
+    {
+      id: 'spinney_2024',
+      short: 'Spinney 2024',
+      full: 'Spinney, L. Proto: How One Ancient Language Went Global. Viking / Hachette.',
+      startYear: -4500,
+      endYear:    500,
     },
   ],
 

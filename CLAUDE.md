@@ -161,3 +161,7 @@ docker compose up --build
 | Linear phase interpolation | Sufficient accuracy for migration timescales of centuries; spline interpolation would add complexity with little visual benefit |
 | CSS-free tile dimming | Early versions used `filter: brightness()` on `#map` — this dimmed raster tile labels too, making borders hard to read. Switched to `tileLayer.setOpacity()` which blends tiles with the page background colour without touching the tile images |
 | Multi-stage Dockerfile | Keeps the final image small (no devDependencies, no build tools); non-root user for security |
+
+
+
+Save all plans and code to ./docs/plans/ instead of global directories..
