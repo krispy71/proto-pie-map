@@ -550,6 +550,11 @@ class PIEMigrationMap {
     return null;
   }
 
+  _getGeneticsForBranch(branchKey) {
+    const data = this._getDatasetForBranch(branchKey);
+    return data && data.genetics ? data.genetics[branchKey] : '';
+  }
+
   updateSpeedLabel() {
     const speed = this.SPEEDS[this.speedIndex];
     const mult  = speed / this.SPEEDS[2]; // SPEEDS[2] = 50 = "1×"
@@ -998,18 +1003,6 @@ class PIEMigrationMap {
 
   // ── Admixture bar chart ───────────────────────────────────────────
 
-  // Ancestry component display config: label, hex color
-  static get ADMIXTURE_COMPONENTS() {
-    return [
-      { key: 'EHG',   label: 'EHG',    color: '#D4843D' },
-      { key: 'CHG',   label: 'CHG',    color: '#9B59B6' },
-      { key: 'WHG',   label: 'WHG',    color: '#2E86C1' },
-      { key: 'ANF',   label: 'ANF',    color: '#1E8449' },
-      { key: 'IranN', label: 'Iran N', color: '#C0392B' },
-      { key: 'Other', label: 'Other',  color: '#5D6D7E' },
-    ];
-  }
-
   renderAdmixture(culture) {
     const container = document.getElementById('info-admixture');
     if (!container) return;
@@ -1034,7 +1027,11 @@ class PIEMigrationMap {
     const legend = document.createElement('div');
     legend.className = 'admixture-legend';
 
-    PIEMigrationMap.ADMIXTURE_COMPONENTS.forEach(({ key, label: lbl, color }) => {
+    const ownerData = this._getDatasetForBranch(culture.branch);
+    const components = ownerData && ownerData.admixtureComponents
+      ? Object.entries(ownerData.admixtureComponents).map(([key, { label: lbl, color }]) => ({ key, lbl, color }))
+      : [];
+    components.forEach(({ key, lbl, color }) => {
       const pct = adm[key] || 0;
       if (pct <= 0) return;
 
@@ -1202,8 +1199,8 @@ class PIEMigrationMap {
   // ── Info Panel ────────────────────────────────────────────────────
 
   showInfo(culture) {
-    const branch   = this.data.branches[culture.branch];
-    const genetics = this.data.genetics[culture.branch] || '';
+    const branch   = this._getBranch(culture.branch);
+    const genetics = this._getGeneticsForBranch(culture.branch) || '';
 
     document.getElementById('info-branch-tag').textContent   = branch.name;
     document.getElementById('info-branch-tag').style.background = branch.color + '33';
