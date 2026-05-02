@@ -248,30 +248,16 @@ class PIEMigrationMap {
   // ── Archaeological Sites ─────────────────────────────────────────
 
   initSites() {
-    if (!this.data.sites) return;
-
-    this.data.sites.forEach(site => {
-      const icon = L.divIcon({
-        className: '',
-        html: '<div class="site-marker-icon"></div>',
-        iconSize:   [10, 10],
-        iconAnchor: [5, 5],
-      });
-
-      const marker = L.marker([site.lat, site.lon], { icon, zIndexOffset: 200 });
-      marker.bindTooltip(
-        `<strong>${escapeHTML(site.name)}</strong><br/><em>${escapeHTML(site.date)}</em><br/>${escapeHTML(site.desc)}`,
-        { className: 'migration-tooltip', sticky: true, maxWidth: 260 }
-      );
-      this.siteGroup.addLayer(marker);
-    });
+    // Add sites for all currently active families
+    for (const data of Object.values(this.activeFamilies)) {
+      this._addSitesForFamily(data);
+    }
 
     if (!this.sitesVisible) this.siteGroup.remove();
 
     const btn = document.getElementById('sites-toggle');
     if (!btn) return;
 
-    // Sync button state to URL-parsed visibility
     if (!this.sitesVisible) {
       btn.textContent = 'Hidden';
       btn.setAttribute('aria-pressed', 'false');
@@ -295,6 +281,24 @@ class PIEMigrationMap {
         btn.classList.add('muted');
       }
       this._pushUrlState();
+    });
+  }
+
+  _addSitesForFamily(data) {
+    if (!data.sites) return;
+    data.sites.forEach(site => {
+      const icon = L.divIcon({
+        className: '',
+        html: '<div class="site-marker-icon"></div>',
+        iconSize:   [10, 10],
+        iconAnchor: [5, 5],
+      });
+      const marker = L.marker([site.lat, site.lon], { icon, zIndexOffset: 200 });
+      marker.bindTooltip(
+        `<strong>${escapeHTML(site.name)}</strong><br/><em>${escapeHTML(site.date)}</em><br/>${escapeHTML(site.desc)}`,
+        { className: 'migration-tooltip', sticky: true, maxWidth: 260 }
+      );
+      this.siteGroup.addLayer(marker);
     });
   }
 
@@ -377,6 +381,77 @@ class PIEMigrationMap {
     this._pushUrlState();
   }
 
+  _buildFamilyPanel() {
+    const panel = document.getElementById('family-panel');
+    if (!panel) return;
+
+    // Remove existing checkboxes (preserve the label span)
+    panel.querySelectorAll('.family-toggle').forEach(el => el.remove());
+
+    const familyOrder = ['pie', 'dravidian', 'sinotibetan'];
+    const familyFallbackLabels = {
+      pie:        'Proto-Indo-European',
+      dravidian:  'Dravidian',
+      sinotibetan:'Sino-Tibetan',
+    };
+
+    familyOrder.forEach(key => {
+      if (!Object.prototype.hasOwnProperty.call(DATASETS, key)) return;
+
+      const data = DATASETS[key];
+      const label = document.createElement('label');
+      label.className = 'family-toggle';
+
+      const cb = document.createElement('input');
+      cb.type    = 'checkbox';
+      cb.id      = `family-cb-${key}`;
+      cb.checked = !!this.activeFamilies[key];
+      cb.addEventListener('change', () => {
+        if (cb.checked) this.activateFamily(key);
+        else            this.deactivateFamily(key);
+      });
+
+      const name = (data && data.familyLabel) || familyFallbackLabels[key] || key;
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(' ' + name));
+      panel.appendChild(label);
+    });
+  }
+
+  _updateHeaderSubtitle() {
+    const sub = document.querySelector('#header p.subtitle');
+    if (!sub) return;
+    const families = Object.values(this.activeFamilies);
+    if (families.length === 1) {
+      sub.textContent = families[0].meta ? families[0].meta.subtitle : '';
+    } else if (families.length > 1) {
+      const names = families
+        .map(d => d.familyLabel || (d.meta && d.meta.title) || '?')
+        .join(' · ');
+      sub.textContent = 'Active: ' + names;
+    } else {
+      sub.textContent = '';
+    }
+  }
+
+  _updateTimelineRange() {
+    const { min, max } = this._calcTimelineUnion();
+    const slider = document.getElementById('time-slider');
+    if (slider) {
+      slider.min = min;
+      slider.max = max;
+    }
+    const edges = document.querySelectorAll('.tl-edge');
+    if (edges[0]) {
+      edges[0].textContent = min < 0 ? `${Math.abs(min).toLocaleString()} BCE` : `${min} CE`;
+    }
+    if (edges[1]) {
+      edges[1].textContent = max <= 0 ? `${Math.abs(max).toLocaleString()} BCE` : `${max} CE`;
+    }
+    if (this.currentYear < min) this.currentYear = min;
+    if (this.currentYear > max) this.currentYear = max;
+  }
+
   // ── Timeline Controls ────────────────────────────────────────────
 
   initControls() {
@@ -437,11 +512,6 @@ class PIEMigrationMap {
       this.setShapeMode(shapeModeSelect.value);
     });
 
-    // Dataset picker (legacy — removed in multi-family refactor)
-    const datasetSelect = document.getElementById('dataset-select');
-    if (datasetSelect) {
-      datasetSelect.addEventListener('change', e => this.activateFamily(e.target.value));
-    }
   }
 
   // ── Multi-family API ─────────────────────────────────────────────
