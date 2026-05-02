@@ -16,6 +16,14 @@ const PIE_DATA = {
   startYear: -4000,
   endYear:    500,
 
+  meta: {
+    timelineMin: -4000,
+    timelineMax:  500,
+    defaultYear: -3500,
+    title:    'PIE Migrations',
+    subtitle: 'Proto-Indo-European language dispersal & genetic migrations, 4000 BCE – 500 CE',
+  },
+
   // ── Language branches ────────────────────────────────────────────
   // Each entry: { name, color (fill), textColor }
   branches: {

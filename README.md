@@ -30,7 +30,7 @@ npm install
 npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3020](http://localhost:3020).
 
 To use a different port:
 
@@ -46,10 +46,10 @@ Requires [Docker](https://docs.docker.com/get-docker/) (and optionally Docker Co
 
 ```bash
 docker build -t proto-pie-map .
-docker run -p 3000:3000 proto-pie-map
+docker run -p 3020:3020 proto-pie-map
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Then open [http://localhost:3020](http://localhost:3020).
 
 ### With Docker Compose
 

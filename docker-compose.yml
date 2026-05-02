@@ -2,13 +2,13 @@ services:
   proto-pie-map:
     build: .
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-3020}:3020"
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=3020
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3020/"]
       interval: 30s
       timeout: 5s
       retries: 3
